@@ -6,12 +6,17 @@
 
 package fr.ias.sitools.converters;
 
+import fr.cnes.sitools.common.validator.ConstraintViolation;
+import fr.cnes.sitools.common.validator.ConstraintViolationLevel;
 import fr.cnes.sitools.common.validator.Validator;
 import fr.cnes.sitools.dataset.converter.business.AbstractConverter;
 import fr.cnes.sitools.dataset.converter.model.ConverterParameter;
 import fr.cnes.sitools.dataset.converter.model.ConverterParameterType;
 import fr.cnes.sitools.datasource.jdbc.model.AttributeValue;
 import fr.cnes.sitools.datasource.jdbc.model.Record;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -73,9 +78,39 @@ public class fileSizeConverter extends AbstractConverter {
         return out;
     }
 
-    @Override
-    public Validator<?> getValidator() {
-        return null;
-    }
+   @Override
+  public Validator<AbstractConverter> getValidator() {
+    // TODO Auto-generated method stub
+    return new Validator<AbstractConverter>() {
+
+      @Override
+      public Set<ConstraintViolation> validate(AbstractConverter item) {
+        Set<ConstraintViolation> constraints = new HashSet<ConstraintViolation>();
+        Map<String, ConverterParameter> params = item.getParametersMap();
+        ConverterParameter param = params.get("colFileSizeInBytes");
+        
+        if(param.getAttachedColumn().isEmpty()){
+          ConstraintViolation constraint = new ConstraintViolation();
+          constraint.setMessage("You must choose the column with filesize in bytes data");
+          constraint.setLevel(ConstraintViolationLevel.CRITICAL);
+          constraint.setValueName(param.getName());
+          constraints.add(constraint);
+        }
+        
+        param = params.get("colFileSizeConvert");
+        
+        if(param.getAttachedColumn().isEmpty()){
+          ConstraintViolation constraint = new ConstraintViolation();
+          constraint.setMessage("You must choose the output column");
+          constraint.setLevel(ConstraintViolationLevel.CRITICAL);
+          constraint.setValueName(param.getName());
+          constraints.add(constraint);
+        }
+        
+        return constraints;
+      }
+    };
+  }
+
     
 }
