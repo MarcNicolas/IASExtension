@@ -46,7 +46,7 @@ public class GetFitsDataSpectroModel extends ResourceModel {
     super();
     setClassAuthor("Boualem HASNOUN");
     setClassOwner("IAS");
-    setClassVersion("0.1");
+    setClassVersion("1.0");
     setName("GetFitsDataSpectroModel");
     setDescription("Getting data and metadata from a fits file");
     setClassName("fr.ias.sitools.resources.spectrofits.GetFitsDataSpectroModel");
