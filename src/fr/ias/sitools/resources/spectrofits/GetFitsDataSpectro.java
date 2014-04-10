@@ -108,8 +108,6 @@ public class GetFitsDataSpectro extends SitoolsParameterizedResource {
   private Representation execute() {
     
     Representation repr = null;
-
-    //Context context = getContext();
     
     // generate the DatabaseRequest
     DataSetApplication datasetApp = (DataSetApplication) getApplication();
@@ -123,13 +121,13 @@ public class GetFitsDataSpectro extends SitoolsParameterizedResource {
     DatabaseRequestParameters params = dsExplorerUtil.getDatabaseParams();
 
     DatabaseRequest databaseRequest = DatabaseRequestFactory.getDatabaseRequest(params);
-
+    
     if (params.getDistinct()) {
       try {
         databaseRequest.createDistinctRequest();
       }
       catch (SitoolsException e) {
-        // TODO Auto-generated catch block
+        
         e.printStackTrace();
       }
     } else {
@@ -137,7 +135,7 @@ public class GetFitsDataSpectro extends SitoolsParameterizedResource {
         databaseRequest.createRequest();
       }
       catch (SitoolsException e) {
-        // TODO Auto-generated catch block
+       
         e.printStackTrace();
       }
     }
@@ -145,7 +143,6 @@ public class GetFitsDataSpectro extends SitoolsParameterizedResource {
     ResourceParameter urlName = this.getModel().getParameterByName("colUrl");
     int hdu = Integer.parseInt(this.getModel().getParameterByName("hduCube").getValue());
     String waveLocation = this.getModel().getParameterByName("wave").getValue();
-    System.out.println(hdu+" "+waveLocation);
     
     if (databaseRequest != null) {
 
