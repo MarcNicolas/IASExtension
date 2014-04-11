@@ -31,9 +31,9 @@ public class CorotIdResolverModel extends ResourceModel {
         super();
         setClassAuthor("Marc NICOLAS");
         setClassOwner("IAS");
-        setClassVersion("0.6");
+        setClassVersion("0.6.1");
         setName("Corot ID Resolver service");
-        setDescription("This service provides a resource something");
+        setDescription("This service provides a resolver name from corotID");
         setResourceClassName(fr.ias.sitools.astro.resolverName.CorotIdResolverResource.class.getName());
         
         ResourceParameter paramExo = new ResourceParameter("exoBool", "true if it's a exo dataset, false in other cases",

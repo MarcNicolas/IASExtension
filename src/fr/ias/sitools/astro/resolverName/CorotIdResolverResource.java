@@ -145,13 +145,9 @@ public class  CorotIdResolverResource extends SitoolsParameterizedResource{
     // Get DatabaseRequestParameters
     DatabaseRequestParameters params = dsExplorerUtil.getDatabaseParams();
     DataSet ds = datasetApp.getDataSet();
-    createQueryCorotID(params,ds);
-    
+    createQueryCorotID(params,ds);    
     DatabaseRequest databaseRequest = DatabaseRequestFactory.getDatabaseRequest(params);
 
-  /*  AttributeValue attrRaValue = null;
-    AttributeValue attrDecValue = null;
-   */
       try {
 
           if (params.getDistinct()) {
