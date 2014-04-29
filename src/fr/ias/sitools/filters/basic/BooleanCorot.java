@@ -46,17 +46,18 @@ public class BooleanCorot extends AbstractFormFilter {
   
   private enum TYPE_COMPONENT {
     /** DefaultType */
-    BOOLEAN_CHECKBOX_COROT
+    BOOLEAN_CHECKBOX_COROT,
+    CHECKBOX_COROT_ASTERO
   } 
  // private static final Logger LOGGER = Logger.getLogger(BooleanCorot.class.getName());
   
   public BooleanCorot() {
     super();
-    this.setName("BooleanCorot");
-    this.setDescription("Required when using BooleanCorot checkbox");
+    this.setName("BooleanCorotAsteroAndExo");
+    this.setDescription("Required when using BooleanCorot for exo or astero data checkbox");
     this.setClassAuthor("MNICOLAS");
     this.setClassOwner("IAS");
-    this.setClassVersion("0.1");
+    this.setClassVersion("0.5");
     this.setDefaultFilter(true);
     
     HashMap<String, ParameterInfo> rpd = new HashMap<String, ParameterInfo>();
@@ -64,6 +65,9 @@ public class BooleanCorot extends AbstractFormFilter {
      ParameterInfo param1 = new ParameterInfo("p[#]", false, "xs:string", ParameterStyle.QUERY, "BOOLEAN_CHECKBOX_COROT|columnAlias1,columnAlias2" +
      		",columnAlias3,columnAlias4|long|short|center|anticenter");
      rpd.put("0", param1);
+     ParameterInfo param2 = new ParameterInfo("p[#]", false, "xs:string", ParameterStyle.QUERY, "CHECKBOX_COROT_ASTERO|columnAlias1,columnAlias2" +
+     		",columnAlias3,columnAlias4|long|short|center|anticenter");
+     rpd.put("1", param2);
      this.setRequestParamsDescription(rpd);
   }
 

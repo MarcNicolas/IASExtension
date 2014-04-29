@@ -1,1 +1,2 @@
-fr.ias.sitools.converters.fileSizeConverter
+fr.ias.sitools.converters.FileSizeConverter
+fr.ias.sitools.converters.RaDecToXYZConverter

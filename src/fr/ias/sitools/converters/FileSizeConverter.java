@@ -24,12 +24,12 @@ import java.util.logging.Logger;
  *
  * @author Marc
  */
-public class fileSizeConverter extends AbstractConverter {
+public class FileSizeConverter extends AbstractConverter {
     
     /** Class logger */
-    private static final Logger LOGGER = Logger.getLogger(fileSizeConverter.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(FileSizeConverter.class.getName());
 
-    public fileSizeConverter() {
+    public FileSizeConverter() {
         
         this.setName("FileSizeConverter");
         this.setDescription("A converter applying an unit conversion from bytes into Kb or Mb or Gb");

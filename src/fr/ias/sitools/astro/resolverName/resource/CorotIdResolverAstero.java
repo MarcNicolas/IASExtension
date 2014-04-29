@@ -50,7 +50,7 @@ public class CorotIdResolverAstero extends AbstractNameResolver {
   /**
    * Credits to return for CDS.
    */
-  private static final String CREDITS_NAME = "IAS2/CNES";
+  private static final String CREDITS_NAME = "IAS Astero/CNES";
   /**
    * Template URL for the Corot identifier resolver service.
    */
@@ -105,13 +105,11 @@ public class CorotIdResolverAstero extends AbstractNameResolver {
   @Override
   public final NameResolverResponse getResponse() {
     NameResolverResponse response = new NameResolverResponse(CREDITS_NAME);
+    LOG.log(Level.SEVERE, "JE RENTRE DANS LE NAMERESOLVERRESPONSE de l'Astero !!");
     try {
-      final String query = TEMPLATE_NAME_RESOLVER.replace("<corotid>", corotId);
-      LOG.log(Level.SEVERE, "***************************************  : "+query);
-      LOG.log(Level.INFO, "***************************   {0} found from Corot service", getCorotId());
-      
+      final String query = TEMPLATE_NAME_RESOLVER.replace("<corotid>", corotId);   
       final JSONObject json = parseResponse(query);
-      LOG.log(Level.SEVERE,"************************************** json : " +json.toString());
+
       final String[] coordinates = parseCoordinates(json);
       final double rightAscension = Double.valueOf(coordinates[0]);
       final double declination = Double.valueOf(coordinates[1]);

@@ -156,8 +156,6 @@ public class GetFitsDataSpectro extends SitoolsParameterizedResource {
         if (attributeValueURL.getValue() != null){
             // get the file path
             String filePath = (String) attributeValueURL.getValue();
-            System.out.println(filePath);
-            
             try {
               
               Fits fits = new Fits(filePath);
@@ -257,7 +255,7 @@ public class GetFitsDataSpectro extends SitoolsParameterizedResource {
                 
               }
 
-              //jSON.put("HEADERS", headers);
+    
               jSON.put("HEADERSGRID", headersList);
               System.out.println("Headers - Done !");
               
