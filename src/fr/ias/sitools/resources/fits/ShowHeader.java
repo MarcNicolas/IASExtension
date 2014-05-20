@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package fr.ias.sitools.resources.spectrofits;
+package fr.ias.sitools.resources.fits;
 
 import fr.cnes.sitools.common.exception.SitoolsException;
 import fr.cnes.sitools.common.resource.SitoolsParameterizedResource;

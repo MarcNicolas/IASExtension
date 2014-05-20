@@ -4,7 +4,7 @@
  * and open the template in the editor.
  */
 
-package fr.ias.sitools.resources.spectrofits;
+package fr.ias.sitools.resources.fits;
 
 import fr.cnes.sitools.common.validator.ConstraintViolation;
 import fr.cnes.sitools.common.validator.Validator;
@@ -31,7 +31,7 @@ public class ShowHeaderModel extends ResourceModel {
         setName("ShowHeaderModel");
         setDescription("Getting metadata from a fits file");
         setClassName("fr.ias.sitools.resources.spectrofits.ShowHeaderModel");
-        setResourceClassName(fr.ias.sitools.resources.spectrofits.ShowHeader.class.getName());
+        setResourceClassName(fr.ias.sitools.resources.fits.ShowHeader.class.getName());
         
         ResourceParameter paramColUrl = new ResourceParameter("colUrl", "Colum containing the url of the fits file.",
         ResourceParameterType.PARAMETER_INTERN);
@@ -46,7 +46,6 @@ public class ShowHeaderModel extends ResourceModel {
     
     @Override
   public Validator<ResourceModel> getValidator() {
-        System.out.println("JE SUIS DANS LE PUTAIN DE VALIDATOR !!");
       return new Validator<ResourceModel>() {
     
       @Override

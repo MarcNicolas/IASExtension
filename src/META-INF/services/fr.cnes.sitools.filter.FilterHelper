@@ -1,5 +1,8 @@
-fr.ias.sitools.filters.basic.BooleanCorot
+fr.ias.sitools.filters.basic.BooleanCorotAsteroAndExo
+fr.ias.sitools.filters.basic.BooleanCustom
 fr.ias.sitools.filters.basic.GroupCheckBoxMasterLigthCurves
 fr.ias.sitools.filters.basic.NThreeVariability
 fr.ias.sitools.filters.basic.TextFieldSQLLikeFilter
 fr.ias.sitools.filters.basic.DateBeginEndFilter
+fr.ias.sitools.filters.basic.SingleValueLikeFilter
+fr.ias.sitools.filters.basic.ListBoxSpectralTypeCorot

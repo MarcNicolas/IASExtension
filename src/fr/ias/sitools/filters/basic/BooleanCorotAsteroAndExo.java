@@ -23,7 +23,7 @@ import fr.cnes.sitools.datasource.jdbc.business.SitoolsSQLDataSource;
 import fr.cnes.sitools.datasource.jdbc.business.SitoolsSQLDataSourceFactory;
 import fr.cnes.sitools.util.SQLUtils;
 
-public class BooleanCorot extends AbstractFormFilter {
+public class BooleanCorotAsteroAndExo extends AbstractFormFilter {
   
   /**
    * The index of TYPE
@@ -51,7 +51,7 @@ public class BooleanCorot extends AbstractFormFilter {
   } 
  // private static final Logger LOGGER = Logger.getLogger(BooleanCorot.class.getName());
   
-  public BooleanCorot() {
+  public BooleanCorotAsteroAndExo() {
     super();
     this.setName("BooleanCorotAsteroAndExo");
     this.setDescription("Required when using BooleanCorot for exo or astero data checkbox");

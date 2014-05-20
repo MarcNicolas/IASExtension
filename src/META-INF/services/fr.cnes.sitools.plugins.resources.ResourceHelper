@@ -1,3 +1,3 @@
 fr.ias.sitools.resources.spectrofits.GetFitsDataSpectroModel
-fr.ias.sitools.resources.spectrofits.ShowHeaderModel
+fr.ias.sitools.resources.fits.ShowHeaderModel
 fr.ias.sitools.astro.resolverName.CorotIdResolverModel
