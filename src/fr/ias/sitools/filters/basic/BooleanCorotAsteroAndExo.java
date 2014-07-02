@@ -57,7 +57,7 @@ public class BooleanCorotAsteroAndExo extends AbstractFormFilter {
     this.setDescription("Required when using BooleanCorot for exo or astero data checkbox");
     this.setClassAuthor("MNICOLAS");
     this.setClassOwner("IAS");
-    this.setClassVersion("0.5");
+    this.setClassVersion("0.1");
     this.setDefaultFilter(true);
     
     HashMap<String, ParameterInfo> rpd = new HashMap<String, ParameterInfo>();

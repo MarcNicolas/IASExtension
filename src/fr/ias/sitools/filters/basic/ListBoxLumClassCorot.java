@@ -40,7 +40,9 @@ import fr.cnes.sitools.dataset.model.Predicat;
 import fr.cnes.sitools.dataset.plugins.filters.core.AbstractFormFilter;
 import static fr.cnes.sitools.dataset.plugins.filters.core.AbstractFormFilter.TEMPLATE_PARAM;
 import static fr.cnes.sitools.dataset.plugins.filters.core.AbstractFormFilter.TEMPLATE_PARAM_CONCEPT;
+import static fr.cnes.sitools.dataset.plugins.filters.core.AbstractFormFilter.TYPE;
 import static fr.cnes.sitools.dataset.plugins.filters.core.AbstractFormFilter.VALUES;
+import java.util.logging.Level;
 
 /**
  * Filter defined for Multiple Value Component
@@ -48,32 +50,47 @@ import static fr.cnes.sitools.dataset.plugins.filters.core.AbstractFormFilter.VA
  * 
  * @author d.arpin
  */
-public final class ListBoxSpectralTypeCorot extends AbstractFormFilter {
+public final class ListBoxLumClassCorot extends AbstractFormFilter {
 
   /**
    * The list of component that uses this filter
    */
   private enum TYPE_COMPONENT {
-    /** List box Spectral Type for Corot */
-    LISTBOXSPECTRALTYPECOROT
+    /** List box Lum class for Corot */
+    LISTBOXLUMCLASSCOROT
   }
   
-  private final List<String> spectralTypeO = Arrays.asList("O5","O6","O8","O8.5","O9");
-  private final List<String> spectralTypeB = Arrays.asList("B0","B1","B2","B3","B5","B6","B8","B9","B2.5","B.5");
-  private final List<String> spectralTypeA = Arrays.asList("A0","A1","A2","A3","A4","A5","A6","A7","A8","A9");
-  private final List<String> spectralTypeF = Arrays.asList("F0","F1","F2","F3","F4","F5","F6","F7","F8","F9");
-  private final List<String> spectralTypeG = Arrays.asList("G0","G1","G2","G3","G4","G5","G6","G7","G8","G9");
-  private final List<String> spectralTypeK = Arrays.asList("K0","K1","K2","K3","K4","K5","K6","K7","K8","K9");
-  private final List<String> spectralTypeM = Arrays.asList("M","M0","M1","M2","M3","M4","M5","M6","M7","M8","M9");
+  /*
+    Pour EXO : 
+    ""
+    "I"
+    "II"
+    "III"
+    "III:"
+    "IV"
+    "null"
+    "V"
+    ""
   
+    Pour Astero : 
+    ""
+    "I"
+    "II"
+    "III"
+    "III-IV"
+    "IV"
+    "V"
+
+  */
+
   /**
    * Default constructor
    */
-  public ListBoxSpectralTypeCorot() {
+  public ListBoxLumClassCorot() {
 
     super();
-    this.setName("ListBoxSpectralTypeCorot");
-    this.setDescription("Required when using List Box Spectral Type for Corot Components");
+    this.setName("ListBoxLumClassCorot");
+    this.setDescription("Required when using List Box Lum Class for Corot Components");
 
     this.setClassAuthor("Mnicolas");
     this.setClassOwner("IAS");
@@ -84,7 +101,7 @@ public final class ListBoxSpectralTypeCorot extends AbstractFormFilter {
 
     ParameterInfo paramInfo;
     paramInfo = new ParameterInfo("p[#]", false, "xs:string", ParameterStyle.QUERY,
-        "LISTBOXSPECTRALTYPECOROT|columnAlias|value1|...|value n");
+        "LISTBOXLUMCLASSCOROT|columnAlias|value1|...|value n");
     rpd.put("0", paramInfo);
     this.setRequestParamsDescription(rpd);
 
@@ -137,6 +154,7 @@ public final class ListBoxSpectralTypeCorot extends AbstractFormFilter {
             columnAlias = getColumnAlias(isConcept, parameters, dsApplication);
             if (columnAlias != null) {
               Column col = ds.findByColumnAlias(columnAlias);
+              List<String> lumClassSeeked = new ArrayList<String>();
 
               if (col != null && col.getFilter() != null && col.getFilter()) {
                 String[] values = Arrays.copyOfRange(parameters, VALUES, parameters.length);
@@ -148,30 +166,24 @@ public final class ListBoxSpectralTypeCorot extends AbstractFormFilter {
                   predicat.setCompareOperator(Operator.IN);
 
                   boolean all = false;
-                  List<String> spectralTypeSeeked = new ArrayList<String>();
                   for (String value : values) {
-                      if(value.equalsIgnoreCase("O")){
-                          spectralTypeSeeked.addAll(this.spectralTypeO);
-                      }else if(value.equalsIgnoreCase("B")){
-                          spectralTypeSeeked.addAll(this.spectralTypeB);
-                      }else if(value.equalsIgnoreCase("A")){
-                          spectralTypeSeeked.addAll(this.spectralTypeA);
-                      }else if(value.equalsIgnoreCase("F")){
-                          spectralTypeSeeked.addAll(this.spectralTypeF);
-                      }else if(value.equalsIgnoreCase("G")){
-                          spectralTypeSeeked.addAll(this.spectralTypeG);
-                      }else if(value.equalsIgnoreCase("K")){
-                          spectralTypeSeeked.addAll(this.spectralTypeK);
-                      }else if(value.equalsIgnoreCase("M")){
-                          spectralTypeSeeked.addAll(this.spectralTypeM);
-                      }else if(value.equalsIgnoreCase("All")){
-                          all = true;
+                      if(value.equalsIgnoreCase("All")){
+                        all = true;
+                      }else{
+                          if(value.equalsIgnoreCase(" ")){
+                              lumClassSeeked.add(value);
+                              lumClassSeeked.add("null");
+                          }else if(value.equalsIgnoreCase("III")){
+                              lumClassSeeked.add(value);
+                              lumClassSeeked.add("III:");
+                          }else{
+                            lumClassSeeked.add(value);
+                          }
                       }
-                      
-                    //in.add(SQLUtils.escapeString(value));
                   }
-                  if(!spectralTypeSeeked.isEmpty()&& !all) {
-                    predicat.setRightValue(spectralTypeSeeked);
+                  getContext().getLogger().log(Level.INFO, "lumClassSeeked : "+lumClassSeeked.toArray().toString());
+                  if(!lumClassSeeked.isEmpty() && !all) {
+                    predicat.setRightValue(lumClassSeeked);
                     predicats.add(predicat);
                   }
                 }

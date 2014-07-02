@@ -6,3 +6,5 @@ fr.ias.sitools.filters.basic.TextFieldSQLLikeFilter
 fr.ias.sitools.filters.basic.DateBeginEndFilter
 fr.ias.sitools.filters.basic.SingleValueLikeFilter
 fr.ias.sitools.filters.basic.ListBoxSpectralTypeCorot
+fr.ias.sitools.filters.basic.ListBoxLumClassCorot
+fr.ias.sitools.filters.basic.TextAreaCorotFilter

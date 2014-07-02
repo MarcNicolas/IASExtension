@@ -93,7 +93,7 @@ public class TextFieldSQLLikeFilter extends AbstractFormFilter {
               if (col != null && col.getFilter() != null && col.getFilter()) {
                 // get the value and escape it to avoid SQL injection
                 String value = SQLUtils.escapeString(parameters[VALUES]);
-                getContext().getLogger().log(Level.CONFIG,"*********************** L'objet à chercher est : "+value);
+                
                 Predicat predicat = new Predicat();
                 if (value != null) {
                   predicat.setLeftString("UPPER("+col.getColumnAlias()+")");
