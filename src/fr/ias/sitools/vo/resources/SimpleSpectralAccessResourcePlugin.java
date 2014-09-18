@@ -145,7 +145,7 @@ public class SimpleSpectralAccessResourcePlugin extends ResourceModel{
      */
     @Override
     public final Validator<ResourceModel> getValidator() {
-        return new Validator<ResourceModel>() {
+        /*return new Validator<ResourceModel>() {
             @Override
             public final Set<ConstraintViolation> validate(final ResourceModel item) {
                 final Set<ConstraintViolation> constraintList = new HashSet<ConstraintViolation>();
@@ -161,7 +161,8 @@ public class SimpleSpectralAccessResourcePlugin extends ResourceModel{
                 }
                 return constraintList;
             }
-        };       
+        };   */
+        return null;
     }
     
 }
