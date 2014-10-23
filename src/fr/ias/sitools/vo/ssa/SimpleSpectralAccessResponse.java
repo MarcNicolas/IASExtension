@@ -74,30 +74,6 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
    */
   private SitoolsSettings sitoolsSettings = null;
   /**
-   * Url of the dataset.
-   */
-  private String urlDs = null; 
-  /**
-   * Url of the host domain of SiTools2.
-   */
-  private String urlHostDomain = null;
-  /**
-   * Url of the PlugIn  Cut Out required for the cut fits.
-   */
-  private String urlPlugInCutOut = null;
-  /**
-   * Url of the service Cut Out.
-   */
-  private String urlServicesCutOut = null;
-  /**
-   *  Part of the API url of SiTools2.
-   */
-  private final String apiStringListBox = "?1=1&amp;p[0]=LISTBOXMULTIPLE|";
-  /**
-   * Boolean to know if it a Cut out service or not. 
-   */
-  //private final boolean siaCut;
-  /**
    * Right Ascenscion.
    */
   private final double ra;
@@ -105,18 +81,15 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
    * Declination.
    */
   private final double dec;
-  /**
-   * Size of cut out.
-   */
-  private final String  sizesCut;
+
   /**
    * Time 
    */
-  private final double time;
+  private final String[] time;
   /**
    * Band 
    */
-  private final double band;
+  private final double[] band;
   
   /**
    * Constructor.
@@ -125,20 +98,12 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
    * @param model data model
    */
   public SimpleSpectralAccessResponse(final SimpleSpectralAccessInputParameters inputParameters, final ResourceModel model) {
-    
-      //this.siaCut = model.getParameterByName("Image service").getValue().equals(SimpleSpectralAccessProtocolLibrary.ImageService.IMAGE_CUTOUT_SERVICE.getServiceName());
       this.sitoolsSettings = (SitoolsSettings) inputParameters.getContext().getAttributes().get(ContextAttributes.SETTINGS);
-      this.urlHostDomain = sitoolsSettings.getString("Starter.PUBLIC_HOST_DOMAIN");
-      this.urlPlugInCutOut = model.getParameterByName("urlCutOutService").getValue();
-      this.urlDs = inputParameters.getDatasetApplication().getDataSet().getSitoolsAttachementForUsers();
       this.ra = inputParameters.getRa();
       this.dec = inputParameters.getDec();
-      this.time = 12;
-      this.band = 12;
-      this.urlServicesCutOut = this.urlHostDomain+this.urlDs+this.urlPlugInCutOut+this.apiStringListBox;
-      this.sizesCut = inputParameters.getRequest().getResourceRef().getQueryAsForm().getFirstValue(SimpleSpectralAccessProtocolLibrary.SIZE);
+      this.time= inputParameters.getTime();
+      this.band = inputParameters.getBand();
       createResponse(inputParameters, model);
-    
   }
 
   /**
@@ -150,8 +115,6 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
   private void createResponse(final SimpleSpectralAccessInputParameters inputParameters, final ResourceModel model) {
     // createResponse
     final String dictionaryName = model.getParameterByName(SimpleSpectralAccessProtocolLibrary.DICTIONARY).getValue();
-    
-    LOG.log(Level.FINEST, "DICO: {0}", dictionaryName);
 
     // Set Votable parameters
     setVotableParametersFromConfiguration(dataModel, model);
@@ -169,13 +132,13 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
    */
   private void setVotableParametersFromConfiguration(final Map dataModel, final ResourceModel model) {
     final List<Param> params = new ArrayList<Param>();
-    setVotableParam(params, model, SimpleSpectralAccessProtocolLibrary.COVERAGE, DataType.CHAR);
-    setVotableParam(params, model, SimpleSpectralAccessProtocolLibrary.TEMPORAL, DataType.CHAR);
+    //setVotableParam(params, model, SimpleSpectralAccessProtocolLibrary.COVERAGE, DataType.CHAR);
+    //setVotableParam(params, model, SimpleSpectralAccessProtocolLibrary.TEMPORAL, DataType.CHAR);
     setVotableParam(params, model, SimpleSpectralAccessProtocolLibrary.INSTRUMENT, DataType.CHAR);
     setVotableParam(params, model, SimpleSpectralAccessProtocolLibrary.MAX_FILE_SIZE, DataType.LONG);
     setVotableParam(params, model, SimpleSpectralAccessProtocolLibrary.RESPONSIBLE_PARTY, DataType.CHAR);
     setVotableParam(params, model, SimpleSpectralAccessProtocolLibrary.SERVICE_NAME, DataType.CHAR);
-    setVotableParam(params, model, SimpleSpectralAccessProtocolLibrary.WAVEBAND, DataType.CHAR);
+    //setVotableParam(params, model, SimpleSpectralAccessProtocolLibrary.WAVEBAND, DataType.CHAR);
     setVotableParam(params, model, SimpleSpectralAccessProtocolLibrary.MAX_RECORDS, DataType.INT);
     setVotableParam(params, model, SimpleSpectralAccessProtocolLibrary.MAX_QUERY_SIZE, DataType.CHAR);
     setVotableParam(params, model, SimpleSpectralAccessProtocolLibrary.MAX_IMAGE_SIZE, DataType.CHAR);
@@ -216,7 +179,7 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
    */
   private void setVotableResource(final DataSetApplication datasetApp, final SimpleSpectralAccessInputParameters inputParameters,
           final ResourceModel model, final String dictionaryName) {
-    String primaryKeyName;  
+    
     final List<Field> fieldList = new ArrayList<Field>();
     final List<String> columnList = new ArrayList<String>();
     DatabaseRequest databaseRequest = null;
@@ -230,7 +193,6 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
       // Get query parameters
       final DatabaseRequestParameters dbParams = setQueryParameters(datasetApp, model, inputParameters, mappingList);
       databaseRequest = DatabaseRequestFactory.getDatabaseRequest(dbParams);
-      
       // Execute query
       databaseRequest.createRequest();
 
@@ -238,9 +200,6 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
       
       //Fill the template with query status and param
       fillInfosParamAboutQuery(model);
-      // Get primaryKey and put in the dataModel
-      primaryKeyName = databaseRequest.getPrimaryKeys().get(0);
-      dataModel.put("primaryKey",databaseRequest.getPrimaryKeys().get(0));
       
       // complete data model with fields
       setFields(fieldList, columnList, mappingList);
@@ -251,21 +210,12 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
           conceptColAlias.put(map.getColumnAlias(), map.getConcept().getPropertyFromName("ucd").getValue());
       }
       dataModel.put("mappingColAliasConceptSql", conceptColAlias);
-      
-      //complete data model with boolean siaCut.
-      /*dataModel.put("siaCut", this.siaCut);
-      if(this.siaCut){
-        //Create the map of cut file
-        Map mapPartFileCutUrl = createFileCutUrl(primaryKeyName);
-        // complete dataModel with it.
-        dataModel.put("fileCutUrl", mapPartFileCutUrl);
-      }*/
-      
-      
+     
       // Complete data model with data
       final int count = (databaseRequest.getCount() > dbParams.getPaginationExtend()) ? dbParams.getPaginationExtend() : databaseRequest.getCount();
       dataModel.put("nrows", count);
       final ConverterChained converterChained = datasetApp.getConverterChained();
+      
       final TemplateSequenceModel rows = new DatabaseRequestModel(databaseRequest, converterChained);
       ((DatabaseRequestModel) rows).setSize(count);
       dataModel.put("rows", rows);
@@ -296,6 +246,7 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
    * @param inputParameters Input Parameters
    * @return DatabaseRequestParamerters object
    */
+  @SuppressWarnings("empty-statement")
   private DatabaseRequestParameters setQueryParameters(final DataSetApplication datasetApp, final ResourceModel model,
           final SimpleSpectralAccessInputParameters inputParameters, List<ColumnConceptMappingDTO> mappingList) {
 
@@ -319,6 +270,8 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
     // Create predicat definition   
     String raColTarget = null;
     String decColTarget = null;
+    String timeColTarget = null;
+    String bandColTarget = null;
     for (ColumnConceptMappingDTO mapIter : mappingList) {
       final String ucd = mapIter.getConcept().getPropertyFromName("ucd").getValue();
       if (ucd.equals(SimpleSpectralAccessProtocolLibrary.REQUIRED_UCD_CONCEPTS.get(1))) {
@@ -327,15 +280,25 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
       if (ucd.equals(SimpleSpectralAccessProtocolLibrary.REQUIRED_UCD_CONCEPTS.get(2))) {
         decColTarget = mapIter.getColumnAlias();
       }
+      if (ucd.equals(SimpleSpectralAccessProtocolLibrary.REQUIRED_UCD_CONCEPTS.get(4))) {
+        timeColTarget = mapIter.getColumnAlias();
+      }
+      if (ucd.equals(SimpleSpectralAccessProtocolLibrary.REQUIRED_UCD_CONCEPTS.get(5))) {
+        bandColTarget = mapIter.getColumnAlias();
+      }
     }
-
     final AbstractSqlGeometryConstraint sql = SqlGeometryFactory.create(String.valueOf(model.getParameterByName(SimpleSpectralAccessProtocolLibrary.INTERSECT).getValue()));
     sql.setInputParameters(inputParameters);
+    String[] geo = null;
+    if(!Util.isNotEmpty(model.getParameterByName(SimpleSpectralAccessProtocolLibrary.GEO_ATTRIBUT).getValue())){
+        geo = new String[]{raColTarget, decColTarget,timeColTarget,bandColTarget};
+    }
+    
     final Object geometry = (Util.isNotEmpty(model.getParameterByName(SimpleSpectralAccessProtocolLibrary.GEO_ATTRIBUT).getValue()))
                       ? model.getParameterByName(SimpleSpectralAccessProtocolLibrary.GEO_ATTRIBUT).getValue()
-                      : Arrays.asList(raColTarget, decColTarget);
+                      : geo;//Arrays.asList(raColTarget, decColTarget,timeColTarget,bandColTarget);
+    //final Object geometry = 
     sql.setGeometry(geometry);
-
     if (sql.getSqlPredicat() != null) {
       final Predicat predicat = new Predicat();
       predicat.setStringDefinition(sql.getSqlPredicat());
@@ -499,6 +462,7 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
    */
   private List<ColumnConceptMappingDTO> checkRequiredMapping(final List<ColumnConceptMappingDTO> mappingList, final int verb)
           throws SitoolsException {
+      
     final int nbConceptToMap = SimpleSpectralAccessProtocolLibrary.REQUIRED_UCD_CONCEPTS.size();
     int nbConcept = 0;
     final List<ColumnConceptMappingDTO> conceptToMap = new ArrayList<ColumnConceptMappingDTO>(mappingList);
@@ -511,8 +475,8 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
         conceptToMap.remove(mappingIter);
       }
     }
-
     if (nbConceptToMap != nbConcept) {
+        
       final StringBuilder buffer = new StringBuilder("columns with ");
       for (ColumnConceptMappingDTO mappingIter : mappingList) {
         buffer.append(mappingIter.getConcept().getName()).append(" ");
@@ -524,22 +488,7 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
     return conceptToMap;
 
   }
-  /**
-   * Create the template of the url of cut file in a hashMap with 3 parts.
-   * @param primaryKeyName
-   * @return HashMap of the url of cut file
-   */
-  private Map createFileCutUrl(String primaryKeyName){
-      Map mapPartFileCutUrl = new HashMap();
-      String mapPartFileCutUrl1 = this.urlServicesCutOut+primaryKeyName+"%7C";
-      String mapPartFileCutUrl2 = "&amp;fileName=";
-      String mapPartFileCutUrl3 = "&amp;RA="+this.ra+"&amp;DEC="+this.dec+"&amp;Radius="+this.sizesCut+"&amp;OutputFormat=FITS";
-      mapPartFileCutUrl.put("1", mapPartFileCutUrl1);
-      mapPartFileCutUrl.put("2", mapPartFileCutUrl2);
-      mapPartFileCutUrl.put("3", mapPartFileCutUrl3);
-      return mapPartFileCutUrl;
-  }
-  
+ 
   private void fillInfosParamAboutQuery(final ResourceModel model){
     final List<Info> listQueryInfos = new ArrayList<Info>();
     
@@ -557,27 +506,24 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
     param.setDatatype(DataType.DOUBLE);
     listQueryParam.add(param);
 
-    param = new Param();
-    param.setName("SIZE");
-    param.setValue(this.sizesCut);
-    param.setUnit("deg");
-    param.setDatatype(DataType.DOUBLE);
-    listQueryParam.add(param);
-//---------------------------------------------------------------------------------------------------------------------------    
+//-------------------------- AJOUT POUR LE PROTOCOLE SSA --------------------------------------------
+    /*
     param = new Param();
     param.setName("TIME");
-    param.setValue("12");
-    param.setUnit("deg");
-    param.setDatatype(DataType.DOUBLE);
+    param.setValue(this.time.toString());
+    //param.setUnit("");
+    param.setDatatype(DataType.CHAR);
     listQueryParam.add(param);
     
     param = new Param();
     param.setName("BAND");
-    param.setValue("12");
-    param.setUnit("deg");
+    param.setValue(this.band.toString());
+    param.setUnit("m");
     param.setDatatype(DataType.DOUBLE);
     listQueryParam.add(param);
-//---------------------------------------------------------------------------------------------------------------------------    
+    */
+    addTimeBandAndSize(listQueryParam);
+//**************************** FIN DU RAJOUT *********************************
     param = new Param();
     param.setName("FORMAT");
     param.setValue(SimpleSpectralAccessProtocolLibrary.ParamStandardFormat.ALL.name().toLowerCase());
@@ -598,5 +544,57 @@ public class SimpleSpectralAccessResponse implements SimpleSpectralAccessDataMod
     listQueryParam.add(param);
     
      dataModel.put("queryParams", listQueryParam);
+  }
+  
+  private List<Param> addTimeBandAndSize(List<Param> listOfParams){
+      // ADD TIME
+      if(this.time.length == 2){
+        Param param = new Param();
+        param.setName("TIME");
+        param.setValue("From : "+this.time[0]+" to "+this.time[1]);
+        param.setDatatype(DataType.CHAR);
+        listOfParams.add(param);
+      }else{
+        Param param = new Param();
+        param.setName("TIME");
+        param.setValue(this.time[0]);
+        param.setDatatype(DataType.CHAR);
+        listOfParams.add(param);
+      }
+      // ADD BAND
+      if(this.band.length == 2){
+          Double bandMin = this.band[0];
+          Double bandMax = this.band[1];
+          Param param = new Param();
+          param.setName("BAND");
+          param.setValue(bandMin.toString()+" , "+bandMax);
+          param.setUnit("m");
+          param.setDatatype(DataType.DOUBLE);
+          listOfParams.add(param);
+      }else{
+          Double bandValue =  this.band[0];
+          Param param = new Param();
+          param.setName("BAND");
+          param.setValue(bandValue.toString());
+          param.setUnit("m");
+          param.setDatatype(DataType.DOUBLE);
+        listOfParams.add(param);
+      }
+      // ADD SIZE 
+      /*
+      if(this.time.length == 2){
+        Param param = new Param();
+        param.setName("TIME");
+        param.setValue("From : "+this.time[0]+" to "+this.time[1]);
+        param.setDatatype(DataType.CHAR);
+        listOfParams.add(param);
+      }else{
+        Param param = new Param();
+        param.setName("TIME");
+        param.setValue(this.time[0]);
+        param.setDatatype(DataType.CHAR);
+        listOfParams.add(param);
+      }*/
+      return listOfParams;
   }
 }

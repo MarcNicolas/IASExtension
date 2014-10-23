@@ -49,9 +49,14 @@ public class OverlapsModeIntersection extends AbstractSqlGeometryConstraint {
   public final void setGeometry(final Object geometry) {
     if (geometry instanceof String) {
       this.geomCol = String.valueOf(geometry);
+    }else if(geometry instanceof List) {
+      
     } else {
       throw new IllegalArgumentException("geometry must be a String");
     }
+    /* } else {
+      throw new IllegalArgumentException("geometry must be a String");
+    }*/
   }
 
   @Override

@@ -1,14 +1,26 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+ /*******************************************************************************
+ * Copyright 2010-2013 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
+ *
+ * This file is part of SITools2.
+ *
+ * SITools2 is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * SITools2 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with SITools2.  If not, see <http://www.gnu.org/licenses/>.
+ ******************************************************************************/
+package fr.ias.sitools.resources.vo;
 
-package fr.ias.sitools.vo.resources;
-
+import fr.ias.sitools.vo.ssa.SimpleSpectralAccessProtocolLibrary;
 import fr.cnes.sitools.common.resource.SitoolsParameterizedResource;
 import fr.cnes.sitools.dataset.DataSetApplication;
-import fr.ias.sitools.vo.ssa.SimpleSpectralAccessProtocolLibrary;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -24,14 +36,15 @@ import org.restlet.representation.Representation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.Get;
 
-
 /**
- *
- * @author marc
+ * Queries the dataset and retrieves the result using the Simple Image Access Protocol.
+ * @see SimpleImageAccessResourcePlugin the plugin
+ * @see SimpleSpectralAccessProtocolLibrary the library that we use for SIAP.
+ * @author Jean-Christophe Malapert <jean-christophe.malapert@cnes.fr>
  */
 public class SimpleSpectralAccessResource extends SitoolsParameterizedResource {
 
-   /**
+  /**
    * Logger.
    */
   private static final Logger LOG = Logger.getLogger(SimpleSpectralAccessResource.class.getName());
@@ -65,9 +78,9 @@ public class SimpleSpectralAccessResource extends SitoolsParameterizedResource {
   @Get
   public final Representation getVOResponse() {
     LOG.finest(String.format("SSA : %s", getRequest()));
-    final SimpleSpectralAccessProtocolLibrary ssa = new SimpleSpectralAccessProtocolLibrary((DataSetApplication) this.getApplication(),
+    final SimpleSpectralAccessProtocolLibrary sia = new SimpleSpectralAccessProtocolLibrary((DataSetApplication) this.getApplication(),
             this.getModel(), this.getRequest(), this.getContext());
-    final Representation rep = ssa.getResponse();
+    final Representation rep = sia.getResponse();
     if (fileName != null && !"".equals(fileName)) {
       final Disposition disp = new Disposition(Disposition.TYPE_ATTACHMENT);
       disp.setFilename(fileName);
@@ -94,24 +107,20 @@ public class SimpleSpectralAccessResource extends SitoolsParameterizedResource {
   @Override
   protected final void describeGet(final MethodInfo info) {
     this.addInfo(info);
-    info.setIdentifier("SimpleSpectralAccessProtocolLibrary");
-    info.setDocumentation("Interoperability service to distribute images through the Simple Spectral Access Protocol");
+    info.setIdentifier("SimpleSpectralAccessProtocol");
+    info.setDocumentation("Interoperability service to distribute spectrum through the Simple Spectral Access Protocol");
 
     final List<ParameterInfo> parametersInfo = new ArrayList<ParameterInfo>();
     parametersInfo.add(new ParameterInfo("POS", true, "string", ParameterStyle.QUERY,
             "Box Central position (decimal degree) in ICRS such as RA,DEC."));
     parametersInfo.add(new ParameterInfo("SIZE", true, "string", ParameterStyle.QUERY,
             "Size of the box in decimal degree such as width,height or width."));
-    parametersInfo.add(new ParameterInfo("BAND", true, "string", ParameterStyle.QUERY,
-            "Band of the searching target."));
-    parametersInfo.add(new ParameterInfo("TIME", true, "string", ParameterStyle.QUERY,
-            "Time of the searching target."));
     info.getRequest().setParameters(parametersInfo);
 
     info.getResponse().getStatuses().add(Status.SUCCESS_OK);
 
     final DocumentationInfo documentation = new DocumentationInfo();
-    documentation.setTitle("SSAP");
+    documentation.setTitle("SIAP");
     documentation.setTextContent("Simple Spectral Access Protocol");
 
     final List<RepresentationInfo> representationsInfo = new ArrayList<RepresentationInfo>();
@@ -120,6 +129,4 @@ public class SimpleSpectralAccessResource extends SitoolsParameterizedResource {
     representationsInfo.add(representationInfo);
     info.getResponse().setRepresentations(representationsInfo);
   }
- 
-
 }

@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.ivoa.xml.votable.v1.DataType;
 import org.restlet.Context;
@@ -80,11 +81,13 @@ public class SimpleSpectralAccessProtocolLibrary {
   public static final List REQUIRED_UCD_CONCEPTS = Arrays.asList("VOX:Image_Title",
                                                     "POS_EQ_RA_MAIN",
                                                     "POS_EQ_DEC_MAIN",
-                                                    "VOX:Image_Naxes",
+                                                    /*"VOX:Image_Naxes",
                                                     "VOX:Image_Naxis",
                                                     "VOX:Image_Scale",
-                                                    "VOX:Image_Format",
-                                                    "VOX:Image_AccessReference");
+                                                    "VOX:Image_Format",*/
+                                                    "VOX:Image_AccessReference",
+                                                    "TIME_MAIN",
+                                                    "BAND_MAIN");
   /**
    *
    */
@@ -672,7 +675,7 @@ public class SimpleSpectralAccessProtocolLibrary {
 
     // Handling input parameters
     final DataModelInterface inputParameters = new SimpleSpectralAccessInputParameters(datasetApp, request, this.context, this.resourceModel);
-
+      
     // data model response
     if (inputParameters.getDataModel().containsKey("infos")) {
       dataModel = inputParameters.getDataModel();

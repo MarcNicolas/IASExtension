@@ -18,13 +18,22 @@
  ******************************************************************************/
 package fr.ias.sitools.vo.ssa;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
   /**
    * Constructs SQL predicat for Center mode intersection.
    */
   public class CenterModeIntersection extends AbstractSqlGeometryConstraint {
-
+    /**
+     * LOGGER
+     */
+     private static final Logger LOG = Logger.getLogger(CenterModeIntersection.class.getName());
     /**
      * Right ascension attribut.
      */
@@ -44,16 +53,20 @@ import java.util.List;
 
     @Override
     public final void setGeometry(final Object geometry) {
+
       if (geometry instanceof String[]) {
         final String[] geometryArray = (String[]) geometry;
-        if (geometryArray.length != 2) {
-          throw new IllegalArgumentException("geometry must be an array of two elements that contains racolName and decColName");
+        
+        if (geometryArray.length != 4) {
+          throw new IllegalArgumentException("geometry must be an array of four elements that contains racolName, decColName, timeColName and bandColName");
         } else {
           this.raCol = geometryArray[0];
           this.decCol = geometryArray[1];
+          this.timeCol = geometryArray[2];
+          this.bandCol = geometryArray[3];
         }
       } else {
-        throw new IllegalArgumentException("geometry must be an array of two elements that contains racolName and decColName");
+        throw new IllegalArgumentException("geometry must be an array of four elements that contains racolName, decColName, timeColName and bandColName");
       }
     }
 
@@ -62,6 +75,12 @@ import java.util.List;
       if (isPolesCollision()) {
         return null;
       }
+      final List rangeSsa = (List) computeTimeAndBandRange();
+      
+      final String[] timeRange = (String[]) rangeSsa.get(0);
+      final double[] bandRange = (double[]) rangeSsa.get(1);
+      
+      
       final List ranges = (List) computeRange();
       final List<Double[]> raRanges = (List<Double[]>) ranges.get(0);
       final double[] decRange = (double[]) ranges.get(1);
@@ -76,6 +95,31 @@ import java.util.List;
                                              decCol, decRange[0], decRange[1],
                                              raCol, raRange1[0], raRange1[1], raCol, raRange2[0], raRange2[1]);
       }
+      
+      if(timeRange[0].equals(timeRange[1])){
+          timeRange[1] = addHourinTimeRange(timeRange[0]);
+      }
+      predicatDefinition += String.format(" AND ( %s BETWEEN %s AND %s ) AND ( %s BETWEEN '%s' AND '%s' )",
+                                             bandCol, bandRange[0], bandRange[1],timeCol, timeRange[0], timeRange[1]);
+      LOG.log(Level.SEVERE,"predicatDefinition : "+predicatDefinition);
       return predicatDefinition;
+    }
+    
+    private String addHourinTimeRange(String timeTo){
+        String a = null;
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+         try {
+             Date date = df.parse(timeTo);
+             Date newDate =  new Date(date.getTime()+TimeUnit.HOURS.toMillis(1));
+             a = newDate.toString();
+             LOG.log(Level.INFO," ************************  : newDate.toString : "+a);
+             LOG.log(Level.INFO," ************************  : newDate.toString : "+newDate.toGMTString());
+             LOG.log(Level.INFO," ************************  : newDate.toString : "+newDate.toLocaleString());
+         } catch (ParseException ex) {
+             Logger.getLogger(CenterModeIntersection.class.getName()).log(Level.SEVERE, null, ex);
+             a=timeTo;
+         }
+        
+        return a;
     }
   }

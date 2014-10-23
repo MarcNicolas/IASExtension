@@ -21,12 +21,14 @@ package fr.ias.sitools.vo.ssa;
 import fr.cnes.sitools.dataset.DataSetApplication;
 import fr.cnes.sitools.extensions.common.InputsValidation;
 import fr.cnes.sitools.extensions.common.NotNullAndNotEmptyValidation;
+import fr.cnes.sitools.extensions.common.NumberArrayValidation;
 import fr.cnes.sitools.extensions.common.NumberValidation;
 import fr.cnes.sitools.extensions.common.SpatialGeoValidation; 
 import fr.cnes.sitools.extensions.common.StatusValidation;
 import fr.cnes.sitools.extensions.common.Validation;
 import fr.cnes.sitools.plugins.resources.model.ResourceModel;
 import fr.cnes.sitools.util.Util;
+import fr.ias.sitools.validation.vo.TimeValidation;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,21 +69,14 @@ public class SimpleSpectralAccessInputParameters implements DataModelInterface {
    */
   private transient double[] size;
   /**
-   * String of minimal time
+   * Array that stores time paramater of the user input time
    */
-  private transient String timeMin;
-  /**
-   * String of maximal time
+  private transient String[] time;
+
+ /**
+   * Array that stores time paramater of the user input time
    */
-  private transient String timeMax;
-  /**
-   * String of min of band
-   */
-  private transient String bandMin;
-  /**
-   * String of min of band
-   */
-  private transient String bandMax;
+  private transient double[] band;
   /**
    * Default value for the verb parameter of the user input.
    */
@@ -124,8 +119,8 @@ public class SimpleSpectralAccessInputParameters implements DataModelInterface {
     final String format = this.request.getResourceRef().getQueryAsForm().getFirstValue(SimpleSpectralAccessProtocolLibrary.FORMAT);
     final String intersect = this.request.getResourceRef().getQueryAsForm().getFirstValue(SimpleSpectralAccessProtocolLibrary.INTERSECT);
     final String verbosity = this.request.getResourceRef().getQueryAsForm().getFirstValue(SimpleSpectralAccessProtocolLibrary.VERB);
-    final String time = this.request.getResourceRef().getQueryAsForm().getFirstValue(SimpleSpectralAccessProtocolLibrary.TIME);
-    final String band = this.request.getResourceRef().getQueryAsForm().getFirstValue(SimpleSpectralAccessProtocolLibrary.BAND);
+    final String timeInput = this.request.getResourceRef().getQueryAsForm().getFirstValue(SimpleSpectralAccessProtocolLibrary.TIME);
+    final String bandInput = this.request.getResourceRef().getQueryAsForm().getFirstValue(SimpleSpectralAccessProtocolLibrary.BAND);
     //TODO check the differentParameters
     if(posInput == null && sizeInput == null){
         final Info info = new Info();
@@ -133,16 +128,12 @@ public class SimpleSpectralAccessInputParameters implements DataModelInterface {
         info.setName("QUERY_STATUS");
         info.setValueAttribute("ERROR");
         listInfos.add(info);
-        info.setName("SERVICE_PROTOCOL");
-        info.setValue("1.1");
-        info.setValueAttribute("SSAP");
-        listInfos.add(info);
         this.dataModel.put("infos", listInfos);
     }else{
         if (Util.isSet(format) && format.equals(SimpleSpectralAccessProtocolLibrary.ParamStandardFormat.METADATA.name())) {
             fillMetadataFormat();
         } else {
-            checkInputParameters(posInput, sizeInput);
+            checkInputParameters(posInput, sizeInput, timeInput, bandInput);
         }
     }
   }
@@ -153,12 +144,18 @@ public class SimpleSpectralAccessInputParameters implements DataModelInterface {
   private void fillMetadataFormat() {
       
     this.dataModel.put("description", this.resourceModel.getParameterByName(SimpleSpectralAccessProtocolLibrary.DESCRIPTION).getValue());
-
-    final Info info = new Info();
+    
+    final List<Info> listInfos = new ArrayList<Info>();
+    Info info = new Info();
     info.setName("QUERY_STATUS");
     info.setValueAttribute("OK");
-    final List<Info> listInfos = new ArrayList<Info>();
+    info = new Info();
     listInfos.add(info);
+    info.setName("SERVICE_PROTOCOL");
+    info.setValue("1.1");
+    info.setValueAttribute("SSAP");
+    listInfos.add(info);
+    
     this.dataModel.put("infos", listInfos);
    
     final List<Param> listParam = new ArrayList<Param>();
@@ -225,14 +222,24 @@ public class SimpleSpectralAccessInputParameters implements DataModelInterface {
    * @param posInput input parameter for POS
    * @param sizeInput input parameter for SIZE
    */
-  private void checkInputParameters(final String posInput, final String sizeInput) {
+  private void checkInputParameters(final String posInput, final String sizeInput, final String timeInput,  final String bandInput) {
     final List<Info> infos = new ArrayList<Info>();
     final Map<String, String> validationMap = new HashMap<String, String>();
     validationMap.put(SimpleSpectralAccessProtocolLibrary.POS, posInput);
-    validationMap.put(SimpleSpectralAccessProtocolLibrary.SIZE, sizeInput);    
+    validationMap.put(SimpleSpectralAccessProtocolLibrary.SIZE, sizeInput); 
+    validationMap.put(SimpleSpectralAccessProtocolLibrary.TIME, timeInput);
+    validationMap.put(SimpleSpectralAccessProtocolLibrary.BAND, bandInput);
     Validation validation = new InputsValidation(validationMap);
     validation = new NotNullAndNotEmptyValidation(validation, SimpleSpectralAccessProtocolLibrary.POS);
     validation = new NotNullAndNotEmptyValidation(validation, SimpleSpectralAccessProtocolLibrary.SIZE);
+    // ------------------------ RAJOUT POUR LE SSA ---------------------------------------
+    if(timeInput!= null){
+        validation = new TimeValidation(validation, SimpleSpectralAccessProtocolLibrary.TIME, timeInput);
+    }
+    if(bandInput != null){
+        validation = new NumberArrayValidation(validation, SimpleSpectralAccessProtocolLibrary.BAND, ",");
+    }
+    //*************** FIN DU RAJOUT *********************************
     if(validation.validate().isValid()){
         validation = new SpatialGeoValidation(validation, SimpleSpectralAccessProtocolLibrary.POS, 0, 1, new double[]{0.0, 360.0}, new double[]{-90.0, 90.0});
         // LA LIGNE SUIVANTE A ETE AJOUTEE POUR VERIFIER QUE LA SIZE EST BIEN UN NOMBRE
@@ -243,26 +250,9 @@ public class SimpleSpectralAccessInputParameters implements DataModelInterface {
     if (status.isValid()) {
         final String pos = validation.getMap().get(SimpleSpectralAccessProtocolLibrary.POS);
         final String[] arrayPos = pos.split(",");
-        final String[] arrayTime = validation.getMap().get(SimpleSpectralAccessProtocolLibrary.TIME).split(",");
-        final String[] arrayBand = validation.getMap().get(SimpleSpectralAccessProtocolLibrary.BAND).split(",");
         
         this.ra = Double.valueOf(arrayPos[0]);
         this.dec = Double.valueOf(arrayPos[1]);
-        if(arrayBand.length == 1){
-            this.bandMin = arrayBand[0];
-            this.bandMax = "-1";
-        }else{
-            this.bandMin = arrayBand[0];
-            this.bandMax = arrayBand[1];
-        }
-        if(arrayBand.length == 1){
-             this.timeMin = arrayTime[0];
-            this.timeMax = "-1";
-        }else{
-            this.timeMin = arrayTime[0];
-            this.timeMax = arrayTime[1];
-        }
-        
         
         final String size = validation.getMap().get(SimpleSpectralAccessProtocolLibrary.SIZE);
         final String[] arraySize = size.split(",");
@@ -274,6 +264,33 @@ public class SimpleSpectralAccessInputParameters implements DataModelInterface {
             this.size[0] = Double.valueOf(arraySize[0]);
             this.size[1] = Double.valueOf(arraySize[1]);
         }
+        //--------------- RAJOUT POUR LE PROTOCOLE SSA -----------------
+        if(timeInput!= null){
+            final String time = timeInput;
+       
+            final String[] arrayTime = time.split(",");
+            if(arrayTime.length == 1) {
+                this.time = new String[1];
+                this.time[0] = arrayTime[0];
+            } else {
+                this.time = new String[2];
+                this.time[0] = arrayTime[0];
+                    this.time[1] = arrayTime[1];
+            }
+        }
+        if(bandInput!= null){
+            final String band = bandInput;
+            final String[] arrayBand = band.split(",");
+            if(arrayBand.length == 1) {
+                this.band = new double[1];
+                this.band[0] = Double.valueOf(arrayBand[0]);
+            } else {
+                this.band = new double[2];
+                this.band[0] = Double.valueOf(arrayBand[0]);
+                this.band[1] = Double.valueOf(arrayBand[1]);
+            }
+        }
+        //*************** FIN DU RAJOUT *********************************
         
     } else {
         Info info = new Info();
@@ -367,31 +384,14 @@ public class SimpleSpectralAccessInputParameters implements DataModelInterface {
     return this.verb;
   }  
 
-    /**
-     * @return the timeMin
-     */
-    public String getTimeMin() {
-        return timeMin;
-    }
-
-    /**
-     * @return the timeMax
-     */
-    public String getTimeMax() {
-        return timeMax;
-    }
-
-    /**
-     * @return the bandMin
-     */
-    public String getBandMin() {
-        return bandMin;
-    }
-
-    /**
-     * @return the bandMax
-     */
-    public String getBandMax() {
-        return bandMax;
-    }
+    public final String[] getTime() {
+      final String[] copyTime = new String[this.time.length];
+      System.arraycopy(this.time, 0, copyTime, 0,this.time.length);
+      return copyTime;
+  }
+    public final double[] getBand() {
+      final double[] copyBand = new double[this.band.length];
+      System.arraycopy(this.band, 0, copyBand, 0, this.band.length);
+      return copyBand;
+  }
 }

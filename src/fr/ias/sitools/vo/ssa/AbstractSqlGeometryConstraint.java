@@ -21,12 +21,18 @@ package fr.ias.sitools.vo.ssa;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Interface to define a SQL spatial constraint.
  * @author Jean-Christophe Malapert <jean-christophe.malapert@cnes.fr>
  */
 public abstract class AbstractSqlGeometryConstraint {
+    
+    /**
+     * LOGGER
+     */
+     private static final Logger LOG = Logger.getLogger(AbstractSqlGeometryConstraint.class.getName());
 
   /**
    * Index where the min value of a range is located.
@@ -49,6 +55,14 @@ public abstract class AbstractSqlGeometryConstraint {
    * Central position along declination axis.
    */
   private transient double decUser;
+  /**
+   * time.
+   */
+  private transient String[] timeUser = new String[2];
+  /**
+   * band.
+   */
+  private transient double[] bandUser = new double[2];
 
   /**
    * Sets the geometry attribute.
@@ -63,9 +77,22 @@ public abstract class AbstractSqlGeometryConstraint {
   public final void setInputParameters(final SimpleSpectralAccessInputParameters inputParameters) {
     this.raUser = inputParameters.getRa();
     this.decUser = inputParameters.getDec();
+    if (inputParameters.getBand().length == 2) {
+        this.bandUser = inputParameters.getBand();
+    }else{
+        this.bandUser[0] = inputParameters.getBand()[0];
+        this.bandUser[1] = inputParameters.getBand()[0];
+    }
+    if (inputParameters.getTime().length == 2) {
+        this.timeUser = inputParameters.getTime();
+    }else{
+        
+        this.timeUser[0] = inputParameters.getTime()[0];
+        this.timeUser[1] = inputParameters.getTime()[0];
+    }
     if (inputParameters.getSize().length == 2) {
       this.sizeArray = inputParameters.getSize();
-    } else {
+    } else { 
       this.sizeArray[0] = inputParameters.getSize()[0];
       this.sizeArray[1] = inputParameters.getSize()[0];
     }
@@ -194,5 +221,9 @@ public abstract class AbstractSqlGeometryConstraint {
       }
     }
     return Arrays.asList(raRange, decRange);
+  }
+  protected final Object computeTimeAndBandRange() {
+   
+   return Arrays.asList(timeUser, bandUser);
   }
 }
