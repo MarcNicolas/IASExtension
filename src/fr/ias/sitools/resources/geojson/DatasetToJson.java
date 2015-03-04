@@ -139,6 +139,7 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                         
                         boolean firstProp = true;
                         String coords[] = new String[2];
+                        String coordinateReference = new String();
                         //String urlDownloadFits = null;
                         
                         /*for (Iterator<AttributeValue> it = rec.getAttributeValues().iterator(); it.hasNext();) {
@@ -198,6 +199,9 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                                             }else if(concept.getName().equals("dec")){
                                                 coords[1]= attr.getValue().toString();
                                             }
+                                            if(concept.getName().equals("coordref")){
+                                                coordinateReference = attr.getValue().toString();
+                                            }
                                         }
                                     }
                                 }
@@ -205,7 +209,7 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                         }
                                                 
                         geometry += "\"coordinates\": ["+coords[0]+","+coords[1]+"],";
-                        geometry += "\"referencesystem\": \"ICRS\",\"type\": \"Point\"}";
+                        geometry += "\"referencesystem\": \""+coordinateReference+"\",\"type\": \"Point\"}";
                         // start feature
                         writer.write("{");
                         writer.write("\"type\":\"feature\",");
