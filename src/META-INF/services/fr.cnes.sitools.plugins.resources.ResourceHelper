@@ -2,3 +2,4 @@ fr.ias.sitools.resources.spectrofits.GetFitsDataSpectroModel
 fr.ias.sitools.resources.fits.ShowHeaderModel
 fr.ias.sitools.astro.resolverName.CorotIdResolverModel
 fr.ias.sitools.resources.vo.SimpleSpectralAccessResourceModel
+fr.ias.sitools.resources.geojson.DatasetToJsonModel
