@@ -17,11 +17,11 @@ import fr.cnes.sitools.dataset.dto.ColumnConceptMappingDTO;
 import fr.cnes.sitools.dataset.dto.DictionaryMappingDTO;
 import fr.cnes.sitools.datasource.jdbc.model.AttributeValue;
 import fr.cnes.sitools.datasource.jdbc.model.Record;
+import fr.cnes.sitools.dictionary.model.Concept;
+import fr.cnes.sitools.util.Property;
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,11 +42,7 @@ public class DatasetToJson extends SitoolsParameterizedResource {
     
     private static final Logger LOG = Logger.getLogger(DatasetToJson.class.getName());
     
-    private ArrayList<String> propToAdd = new ArrayList<String>();
-    
     private String dicoNameString = new String();
-    
-    private ArrayList<String> columnsAlias = new ArrayList<String>();
     
     @Override
     public void sitoolsDescribe() {
@@ -105,7 +101,7 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                 
                 String dicoName = getParameterValue(dicoNameString);
                 // Get the HashMap with as key the concept and value the columnAlias
-                final HashMap<String,String> conceptsColumns = getcolumnAliasFromDico(dicoName, dico, datasetApp);
+                final HashMap<Concept,String> conceptsColumns = getcolumnAliasFromDico(dicoName, dico, datasetApp);
                 
                 // Get request parameters
                 if (datasetApp.getConverterChained() != null) {
@@ -140,44 +136,74 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                         String geometry = new String();
                         //String services = new String();
                         String properties = new String();
-                        String title = new String();
-                        String title_descrip = new String();
-                        String title_obj = new String();
+                        
                         boolean firstProp = true;
                         String coords[] = new String[2];
                         //String urlDownloadFits = null;
-                        for (Iterator<AttributeValue> it = rec.getAttributeValues().iterator(); it.hasNext();) {
-                          AttributeValue attr = it.next();
+                        
+                        /*for (Iterator<AttributeValue> it = rec.getAttributeValues().iterator(); it.hasNext();) {
+                            AttributeValue attr = it.next();
                             if(attr.getName().toString().equals(conceptsColumns.get("ra"))){
                                 coords[0]= attr.getValue().toString();
                             }
                             if(attr.getName().toString().equals(conceptsColumns.get("dec"))){
                                 coords[1]= attr.getValue().toString();
                             }
-                            if(attr.getName().toString().equals(conceptsColumns.get("object"))){
-                                title_obj = attr.getValue().toString();
-                            }
-                            if(attr.getName().toString().equals(conceptsColumns.get("description"))){
-                                title_descrip = attr.getValue().toString();
-                            }
-                            if(conceptsColumns.values().contains(attr.getName())){
-                                /*if(attr.getName().toString().equals(conceptsColumns.get("download"))){
-                                    urlDownloadFits = attr.getValue().toString();
-                                }*/
-
-                                if (attr.getValue() != null && !attr.getValue().equals("")) {
-                                    if (!firstProp) {
-                                        properties += ",";
+                            for(String col : conceptsColumns.values()){
+                                
+                                if(col.equals(attr.getName())){
+                                    if (attr.getValue() != null && !attr.getValue().equals("")) {
+                                        if (!firstProp) {
+                                            properties += ",";
+                                        }
+                                        else {
+                                            firstProp = false;
+                                        }
+                                        properties += "\"" + getKeyFromValue(conceptsColumns,col) + "\":\"" + attr.getValue() + "\"";
                                     }
-                                    else {
-                                        firstProp = false;
-                                    }
-                                    properties += "\"" + attr.getName() + "\":\"" + attr.getValue() + "\"";
                                 }
                             }
+                        }*/
+                        
+                        for(Concept concept : conceptsColumns.keySet()){
+                            //LOG.log(Level.SEVERE, "**************  name : "+concept.getName()+" category = "+concept.getPropertyFromName("category").getValue());
+                            int i=0;
+                            concept.getPropertyFromName("category");
+                            /*for(Property p :concept.getProperties()){
+                                LOG.log(Level.SEVERE, "**************  propertie["+i+"] : "+p.getName()+" = "+p.getValue());
+                                i++;
+                            }*/
+                            String colAlias = conceptsColumns.get(concept);
+                            for(AttributeValue attr : rec.getAttributeValues()){
+                                 /*if(attr.getName().toString().equals(conceptsColumns.get("ra"))){
+                                    coords[0]= attr.getValue().toString();
+                                }
+                                if(attr.getName().toString().equals(conceptsColumns.get("dec"))){
+                                    coords[1]= attr.getValue().toString();
+                                }*/
+                                if(attr.getName().equals(colAlias)){
+                                    if (attr.getValue() != null && !attr.getValue().equals("")) {
+                                        if(concept.getPropertyFromName("category").getValue().contains("properties")){
+                                            if (!firstProp) {
+                                                properties += ",";
+                                            }
+                                            else {
+                                                firstProp = false;
+                                            }
+                                            properties += "\"" + attr.getName() + "\":\"" + attr.getValue() + "\"";
+                                        }
+                                        if(concept.getPropertyFromName("category").getValue().contains("geometry")){
+                                            if(concept.getName().equals("ra")){
+                                                coords[0]= attr.getValue().toString();
+                                            }else if(concept.getName().equals("dec")){
+                                                coords[1]= attr.getValue().toString();
+                                            }
+                                        }
+                                    }
+                                }
+                            }  
                         }
-                        //title = title_obj+" "+title_descrip;
-                        //properties += ",\"title\":\"" + title + "\"";
+                                                
                         geometry += "\"coordinates\": ["+coords[0]+","+coords[1]+"],";
                         geometry += "\"referencesystem\": \"ICRS\",\"type\": \"Point\"}";
                         // start feature
@@ -223,16 +249,24 @@ public class DatasetToJson extends SitoolsParameterizedResource {
         
     }
     
-    private HashMap<String,String> getcolumnAliasFromDico(String dicoName, DictionaryMappingDTO dico, DataSetApplication datasetApp){
+    private HashMap<Concept,String> getcolumnAliasFromDico(String dicoName, DictionaryMappingDTO dico, DataSetApplication datasetApp){
         
         dico = datasetApp.getColumnConceptMappingDTO(dicoName);
         final List<ColumnConceptMappingDTO> colConceptMappingDTOList = dico.getMapping();
-        final HashMap<String,String> conceptColumn = new HashMap<String,String>();
+        final HashMap<Concept,String> conceptColumn = new HashMap<Concept,String>();
         
         for(ColumnConceptMappingDTO concepts : colConceptMappingDTOList){
-            conceptColumn.put(concepts.getConcept().getName(), concepts.getColumnAlias());
+            conceptColumn.put(concepts.getConcept(), concepts.getColumnAlias());
         }
         return conceptColumn;
     }
     
+    /*private static Object getKeyFromValue(Map hm, Object value) {
+        for (Object o : hm.keySet()) {
+        if (hm.get(o).equals(value)) {
+            return o;
+          }
+        }
+        return null;
+    }*/
 }
