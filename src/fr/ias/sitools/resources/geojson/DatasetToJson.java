@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.activation.MimeType;
 import org.restlet.data.MediaType;
 import org.restlet.ext.wadl.MethodInfo;
 import org.restlet.representation.Representation;
@@ -32,6 +33,7 @@ import org.restlet.representation.Variant;
 import org.restlet.resource.Get;
 // IMPORT POUR LE JSON
 import org.restlet.representation.WriterRepresentation;
+
 //-------------------------
 
 /**
@@ -43,6 +45,12 @@ public class DatasetToJson extends SitoolsParameterizedResource {
     private static final Logger LOG = Logger.getLogger(DatasetToJson.class.getName());
     
     private String dicoNameString = new String();
+    
+    final private String mimeTypeFits = "application/fits";
+    
+    final private int maxResultsSend = 999999999;
+    
+    final private double ratioSpolyToRaDec = 57.295779513;
     
     @Override
     public void sitoolsDescribe() {
@@ -98,7 +106,7 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                 DataSetApplication datasetApp = (DataSetApplication) getApplication();
                 DataSetExplorerUtil dsExplorerUtil = new DataSetExplorerUtil(datasetApp, getRequest(), getContext());
                 DictionaryMappingDTO dico =null;
-                
+
                 String dicoName = getParameterValue(dicoNameString);
                 // Get the HashMap with as key the concept and value the columnAlias
                 final HashMap<Concept,String> conceptsColumns = getcolumnAliasFromDico(dicoName, dico, datasetApp);
@@ -108,10 +116,14 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                     datasetApp.getConverterChained().getContext().getAttributes().put("REQUEST", getRequest());
                 }
                 // Get DatabaseRequestParameters
-                DatabaseRequestParameters params = dsExplorerUtil.getDatabaseParams();
+                final DatabaseRequestParameters params = dsExplorerUtil.getDatabaseParams();
+                params.setPaginationExtend(maxResultsSend);
+                //params.setPaginationExtend(datasetApp.getDataSet().getNbRecords());
                 DatabaseRequest databaseRequest = DatabaseRequestFactory.getDatabaseRequest(params);
+               
                 try {
                     databaseRequest.createRequest();
+                    
                 }catch (SitoolsException e) {
                     e.printStackTrace();
                 }
@@ -121,11 +133,12 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                 writer.write("\"totalResults\":" + databaseRequest.getTotalCount() + ",");
                 writer.write("\"features\":[");
                 // Next for reading first record
+                
                 try {
                     boolean first = true;
+                    
                     while (databaseRequest.nextResult()) {
                         Record rec = databaseRequest.getRecord();
-
                         if (!first) {
                           writer.write(",");
                         }
@@ -133,57 +146,19 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                           first = false;
                         }
                         // creates a geometry and a properties string
-                        String geometry = new String();
-                        //String services = new String();
-                        String properties = new String();
-                        
+                        String geometry = "";
+                        String services = "";
+                        String properties = "";
                         boolean firstProp = true;
                         String coords[] = new String[2];
-                        String coordinateReference = new String();
-                        //String urlDownloadFits = null;
-                        
-                        /*for (Iterator<AttributeValue> it = rec.getAttributeValues().iterator(); it.hasNext();) {
-                            AttributeValue attr = it.next();
-                            if(attr.getName().toString().equals(conceptsColumns.get("ra"))){
-                                coords[0]= attr.getValue().toString();
-                            }
-                            if(attr.getName().toString().equals(conceptsColumns.get("dec"))){
-                                coords[1]= attr.getValue().toString();
-                            }
-                            for(String col : conceptsColumns.values()){
-                                
-                                if(col.equals(attr.getName())){
-                                    if (attr.getValue() != null && !attr.getValue().equals("")) {
-                                        if (!firstProp) {
-                                            properties += ",";
-                                        }
-                                        else {
-                                            firstProp = false;
-                                        }
-                                        properties += "\"" + getKeyFromValue(conceptsColumns,col) + "\":\"" + attr.getValue() + "\"";
-                                    }
-                                }
-                            }
-                        }*/
+                        String coordinateReference = "";
+                        String urlDownloadFits = "";                   
                         
                         for(Concept concept : conceptsColumns.keySet()){
-                            //LOG.log(Level.SEVERE, "**************  name : "+concept.getName()+" category = "+concept.getPropertyFromName("category").getValue());
-                            int i=0;
-                            concept.getPropertyFromName("category");
-                            /*for(Property p :concept.getProperties()){
-                                LOG.log(Level.SEVERE, "**************  propertie["+i+"] : "+p.getName()+" = "+p.getValue());
-                                i++;
-                            }*/
+                            concept.getPropertyFromName("category");                            
                             String colAlias = conceptsColumns.get(concept);
                             for(AttributeValue attr : rec.getAttributeValues()){
-                                 /*if(attr.getName().toString().equals(conceptsColumns.get("ra"))){
-                                    coords[0]= attr.getValue().toString();
-                                }
-                                if(attr.getName().toString().equals(conceptsColumns.get("dec"))){
-                                    coords[1]= attr.getValue().toString();
-                                }*/
-                                if(attr.getName().equals(colAlias)){
-                                    if (attr.getValue() != null && !attr.getValue().equals("")) {
+                                if(attr.getName().equals(colAlias) && attr.getValue() != null && !attr.getValue().equals("")){
                                         if(concept.getPropertyFromName("category").getValue().contains("properties")){
                                             if (!firstProp) {
                                                 properties += ",";
@@ -191,7 +166,7 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                                             else {
                                                 firstProp = false;
                                             }
-                                            properties += "\"" + attr.getName() + "\":\"" + attr.getValue() + "\"";
+                                            properties += "\"" + concept.getName().toString() + "\":\"" + attr.getValue() + "\"";
                                         }
                                         if(concept.getPropertyFromName("category").getValue().contains("geometry")){
                                             if(concept.getName().equals("ra")){
@@ -203,19 +178,29 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                                                 coordinateReference = attr.getValue().toString();
                                             }
                                         }
-                                    }
+                                        if(concept.getPropertyFromName("category").getValue().contains("services")){
+                                            if(concept.getName().equals("download")){
+                                                 urlDownloadFits = attr.getValue().toString();
+                                            }
+                                        }
+                                        
                                 }
                             }  
                         }
-                                                
-                        geometry += "\"coordinates\": ["+coords[0]+","+coords[1]+"],";
-                        geometry += "\"referencesystem\": \""+coordinateReference+"\",\"type\": \"Point\"}";
+                        
+                        // Set the geometry
+                        geometry = setGeometry(coords, coordinateReference);
+                        // Set The services
+                        if(!urlDownloadFits.isEmpty()){
+                            services = setServices(urlDownloadFits);
+                        }
                         // start feature
                         writer.write("{");
                         writer.write("\"type\":\"feature\",");
                         // start geometry
                         writer.write("\"geometry\":{");
                         writer.write(geometry);
+                        writer.write("}");
                         // end geometry
                         writer.write(",");
                         // start properties
@@ -223,16 +208,29 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                         writer.write(properties);
                         // end properties
                         writer.write("}");
+                        
+                        // start services
+                        if(!services.equals("")){
+                            writer.write(",");
+                            writer.write("\"services\":{");
+                        
+                            writer.write(services);
+                             // end services
+                            writer.write("}");
+                        }
+                       
                         // end feature
                         writer.write("}");
 
                     }
+                    
                     // end features
                     writer.write("]");
+                    
+                        
 
-
-                    }catch (SitoolsException ex) {
-                        Logger.getLogger(DatasetToJson.class.getName()).log(Level.SEVERE, null, ex);
+                }catch (SitoolsException ex) {
+                    Logger.getLogger(DatasetToJson.class.getName()).log(Level.SEVERE, null, ex);
                 }finally {
                     writer.write("}");
                     if (databaseRequest != null) {
@@ -246,7 +244,6 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                     writer.flush();
                     }
                 }
-
             }
         };
         return repr;
@@ -265,12 +262,17 @@ public class DatasetToJson extends SitoolsParameterizedResource {
         return conceptColumn;
     }
     
-    /*private static Object getKeyFromValue(Map hm, Object value) {
-        for (Object o : hm.keySet()) {
-        if (hm.get(o).equals(value)) {
-            return o;
-          }
-        }
-        return null;
-    }*/
+    private String setGeometry(String[] coords, String coordRef){
+        String geometry = new String();
+        geometry = "\"coordinates\": ["+coords[0]+","+coords[1]+"],";
+        geometry += "\"referencesystem\": \""+coordRef+"\",\"type\": \"Point\"";
+        return  geometry;
+    }
+    
+    private String setServices(String urlDownFits){
+        String services = new String();
+        services += "\"download\":{ \"mimetype\":\""+mimeTypeFits+"\",";
+        services += "\"url\":\""+urlDownFits+"\"}";
+        return services;
+    }
 }
