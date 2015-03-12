@@ -152,7 +152,8 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                         boolean firstProp = true;
                         String coords[] = new String[2];
                         String coordinateReference = "";
-                        String urlDownloadFits = "";                   
+                        String urlDownloadFits = "";    
+                        String spoly = "";
                         
                         for(Concept concept : conceptsColumns.keySet()){
                             concept.getPropertyFromName("category");                            
@@ -177,6 +178,9 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                                             if(concept.getName().equals("coordref")){
                                                 coordinateReference = attr.getValue().toString();
                                             }
+                                            if(concept.getName().equals("spoly")){
+                                                spoly = attr.getValue().toString();
+                                            }
                                         }
                                         if(concept.getPropertyFromName("category").getValue().contains("services")){
                                             if(concept.getName().equals("download")){
@@ -189,7 +193,7 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                         }
                         
                         // Set the geometry
-                        geometry = setGeometry(coords, coordinateReference);
+                        geometry = setGeometry(coords, coordinateReference, spoly);
                         // Set The services
                         if(!urlDownloadFits.isEmpty()){
                             services = setServices(urlDownloadFits);
@@ -262,10 +266,19 @@ public class DatasetToJson extends SitoolsParameterizedResource {
         return conceptColumn;
     }
     
-    private String setGeometry(String[] coords, String coordRef){
+    private String setGeometry(String[] coords, String coordRef, String spoly){
         String geometry = new String();
-        geometry = "\"coordinates\": ["+coords[0]+","+coords[1]+"],";
-        geometry += "\"referencesystem\": \""+coordRef+"\",\"type\": \"Point\"";
+        if(!spoly.equals("")){
+            geometry = "\"coordinates\": ["+coords[0]+","+coords[1]+"],";
+            geometry += "\"referencesystem\": \""+coordRef+"\",\"type\": \"Point\"";
+        }else{
+            String[] test = spoly.split(",");
+            test[0] = test[0].substring(1, test[0].length());
+            test[spoly.split(",").length] = test[spoly.split(",").length].substring(0, test[spoly.split(",").length].length()-1);
+            
+            LOG.log(Level.INFO, "-------------------------   test : "+test.toString());
+        }
+        
         return  geometry;
     }
     
