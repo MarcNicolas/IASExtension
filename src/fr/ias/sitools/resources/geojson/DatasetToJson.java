@@ -18,14 +18,12 @@ import fr.cnes.sitools.dataset.dto.DictionaryMappingDTO;
 import fr.cnes.sitools.datasource.jdbc.model.AttributeValue;
 import fr.cnes.sitools.datasource.jdbc.model.Record;
 import fr.cnes.sitools.dictionary.model.Concept;
-import fr.cnes.sitools.util.Property;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.activation.MimeType;
 import org.restlet.data.MediaType;
 import org.restlet.ext.wadl.MethodInfo;
 import org.restlet.representation.Representation;
@@ -268,15 +266,48 @@ public class DatasetToJson extends SitoolsParameterizedResource {
     
     private String setGeometry(String[] coords, String coordRef, String spoly){
         String geometry = new String();
-        if(!spoly.equals("")){
+        String[] spolyStringTmp = new String[4];
+        String[] spolyConverted = new String[4];
+        if(spoly.equals("")){
             geometry = "\"coordinates\": ["+coords[0]+","+coords[1]+"],";
             geometry += "\"referencesystem\": \""+coordRef+"\",\"type\": \"Point\"";
         }else{
-            String[] test = spoly.split(",");
-            test[0] = test[0].substring(1, test[0].length());
-            test[spoly.split(",").length] = test[spoly.split(",").length].substring(0, test[spoly.split(",").length].length()-1);
+            /*
+            String[] tmpString = spoly.split("\\)");
+            tmpString[0] = tmpString[0].substring(2, tmpString[0].length());
+            spolyStringTmp[0] = tmpString[0];
+            spolyStringTmp[4] = tmpString[0];
+            for(int i=1;i<4;i++){
+                spolyStringTmp[i] = tmpString[i].substring(2, tmpString[i].length());
+            }
+            int k=0;
+            for(String tmp : spolyStringTmp){
+                double a0 = (Double.parseDouble(tmp.split(",")[0])*ratioSpolyToRaDec);
+                double a1 = (Double.parseDouble(tmp.split(",")[1])*ratioSpolyToRaDec);
+                spolyConverted[k] = "["+String.valueOf(a0)+" , "+String.valueOf(a1)+"]";
+
+                k++;
+            }
             
-            LOG.log(Level.INFO, "-------------------------   test : "+test.toString());
+            //geometry = "\"coordinates\":[["+spolyConverted[2]+","+spolyConverted[3]+","+spolyConverted[0]+","+spolyConverted[1]+","+spolyConverted[2]+"]],";
+            geometry = "\"coordinates\":[["+spolyConverted[3]+","+spolyConverted[2]+","+spolyConverted[1]+","+spolyConverted[0]+","+spolyConverted[3]+"]],";
+            geometry += "\"referencesystem\": \""+coordRef+"\",\"type\": \"Polygon\"";
+            */
+            String[] tmpString = spoly.split("\\)");
+            tmpString[0] = tmpString[0].substring(2, tmpString[0].length());
+            spolyStringTmp[0] = tmpString[0];
+            
+            for(int i=1;i<4;i++){
+                spolyStringTmp[i] = tmpString[i].substring(2, tmpString[i].length());
+            }
+            
+            for(int k=0;k<spolyStringTmp.length-1;k++){
+                spolyConverted[k] = "["+String.valueOf((Double.parseDouble(spolyStringTmp[k].split(",")[0])*ratioSpolyToRaDec))
+                        +" , "+String.valueOf((Double.parseDouble(spolyStringTmp[k].split(",")[1])*ratioSpolyToRaDec))+"]";
+            }
+            
+            geometry = "\"coordinates\":[["+spolyConverted[3]+","+spolyConverted[2]+","+spolyConverted[1]+","+spolyConverted[0]+","+spolyConverted[3]+"]],";
+            geometry += "\"referencesystem\": \""+coordRef+"\",\"type\": \"Polygon\"";
         }
         
         return  geometry;
