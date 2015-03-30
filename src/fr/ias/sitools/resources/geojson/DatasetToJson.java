@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.restlet.data.MediaType;
@@ -87,7 +88,7 @@ public class DatasetToJson extends SitoolsParameterizedResource {
     @Override
     protected Representation head(Variant variant) {
         Representation repr = super.head();
-        repr.setMediaType(MediaType.APPLICATION_JSON);
+        //repr.setMediaType(MediaType.APPLICATION_JSON);
         return repr;
     }
 
@@ -95,69 +96,105 @@ public class DatasetToJson extends SitoolsParameterizedResource {
 
         dicoNameString = DatasetToJsonModel.DICO_PARAM_NAME;
         
-        Representation repr = new WriterRepresentation(MediaType.APPLICATION_JSON) {
-            
-            @Override
-            public void write(Writer writer) throws IOException {
-                
-                // generate the DatabaseRequest
-                DataSetApplication datasetApp = (DataSetApplication) getApplication();
-                DataSetExplorerUtil dsExplorerUtil = new DataSetExplorerUtil(datasetApp, getRequest(), getContext());
-                DictionaryMappingDTO dico =null;
-
-                String dicoName = getParameterValue(dicoNameString);
-                // Get the HashMap with as key the concept and value the columnAlias
-                final HashMap<Concept,String> conceptsColumns = getcolumnAliasFromDico(dicoName, dico, datasetApp);
-                
-                // Get request parameters
-                if (datasetApp.getConverterChained() != null) {
-                    datasetApp.getConverterChained().getContext().getAttributes().put("REQUEST", getRequest());
-                }
-                // Get DatabaseRequestParameters
-                final DatabaseRequestParameters params = dsExplorerUtil.getDatabaseParams();
-                params.setPaginationExtend(maxResultsSend);
-                //params.setPaginationExtend(datasetApp.getDataSet().getNbRecords());
-                DatabaseRequest databaseRequest = DatabaseRequestFactory.getDatabaseRequest(params);
-               
-                try {
-                    databaseRequest.createRequest();
+        final Representation repr;
+        repr = new WriterRepresentation(MediaType.APPLICATION_JSON) { ;            
+                //repr =
+                @Override
+                public void write(Writer writer) throws IOException {
+                    boolean jsonP = false;
+                    String cb =  getRequest().getResourceRef().getQueryAsForm().getFirstValue("callback");
+                    String limit = null;
+                    limit = getRequest().getResourceRef().getQueryAsForm().getFirstValue("limit");
                     
-                }catch (SitoolsException e) {
-                    e.printStackTrace();
-                }
-                writer.write("{");
-                writer.write("\"type\":\"FeatureCollection\",");
-                // start features
-                writer.write("\"totalResults\":" + databaseRequest.getTotalCount() + ",");
-                writer.write("\"features\":[");
-                // Next for reading first record
-                
-                try {
-                    boolean first = true;
+                    if (cb != null) {
+                        jsonP = true;
+                        //getResponse().set //setContentType("text/javascript");
+                        this.setMediaType(MediaType.TEXT_JAVASCRIPT);
+                    } else {
+                        this.setMediaType(MediaType.APPLICATION_JSON);
+                    }
                     
-                    while (databaseRequest.nextResult()) {
-                        Record rec = databaseRequest.getRecord();
-                        if (!first) {
-                          writer.write(",");
-                        }
-                        else {
-                          first = false;
-                        }
-                        // creates a geometry and a properties string
-                        String geometry = "";
-                        String services = "";
-                        String properties = "";
-                        boolean firstProp = true;
-                        String coords[] = new String[2];
-                        String coordinateReference = "";
-                        String urlDownloadFits = "";    
-                        String spoly = "";
+                    
+                    // generate the DatabaseRequest
+                    DataSetApplication datasetApp = (DataSetApplication) getApplication();
+                    DataSetExplorerUtil dsExplorerUtil = new DataSetExplorerUtil(datasetApp, getRequest(), getContext());
+                    DictionaryMappingDTO dico =null;
+                    
+                    String dicoName = getParameterValue(dicoNameString);
+                    // Get the HashMap with as key the concept and value the columnAlias
+                    final HashMap<Concept,String> conceptsColumns = getcolumnAliasFromDico(dicoName, dico, datasetApp);
+                    
+                    // Get request parameters
+                    if (datasetApp.getConverterChained() != null) {
+                        datasetApp.getConverterChained().getContext().getAttributes().put("REQUEST", getRequest());
+                    }
+                    // Get DatabaseRequestParameters
+                    final DatabaseRequestParameters params = dsExplorerUtil.getDatabaseParams();
+                    LOG.log(Level.INFO,"***************************************** limit : "+ limit);
+                    if(limit == null){
+                        LOG.log(Level.INFO," ------------------- JE SUIS DANS LE IF");
+                        params.setPaginationExtend(maxResultsSend);
+                    }else if(limit.equals("25")){
+                        LOG.log(Level.INFO," ------------------- JE SUIS DANS LE ELSE IF");
+                        params.setPaginationExtend(maxResultsSend);
+                    }else{
+                        LOG.log(Level.INFO," ------------------- JE SUIS DANS LE ELSE");
+                        params.setPaginationExtend(Integer.parseInt(limit));
+                    }
+                    //params.setPaginationExtend(maxResultsSend);
+                    //params.setPaginationExtend(datasetApp.getDataSet().getNbRecords());
+                    DatabaseRequest databaseRequest = DatabaseRequestFactory.getDatabaseRequest(params);
+                    
+                    try {
+                        databaseRequest.createRequest();
                         
-                        for(Concept concept : conceptsColumns.keySet()){
-                            concept.getPropertyFromName("category");                            
-                            String colAlias = conceptsColumns.get(concept);
-                            for(AttributeValue attr : rec.getAttributeValues()){
-                                if(attr.getName().equals(colAlias) && attr.getValue() != null && !attr.getValue().equals("")){
+                    }catch (SitoolsException e) {
+                        e.printStackTrace();
+                    }
+                    if(jsonP){
+                        writer.write(cb + "(");
+                    }
+                    String response = "";
+                    //response = "{";
+                    writer.write("{");
+                    //response += "\"type\":\"FeatureCollection\",";
+                    writer.write("\"type\":\"FeatureCollection\",");
+                    // start features
+                    //response +="\"totalResults\":" + databaseRequest.getTotalCount() + ",";
+                    writer.write("\"totalResults\":" + databaseRequest.getTotalCount() + ",");
+                    //response +="\"features\":[";
+                    writer.write("\"features\":[");
+                    // Next for reading first record
+                    
+                    try {
+                        boolean first = true;
+                        while (databaseRequest.nextResult()) {                           
+                            Record rec = databaseRequest.getRecord();                            
+                            if (!first) {
+                                //response += ",";
+                                writer.write(",");
+                            }
+                            else {
+                                first = false;
+                            }
+                            // creates a geometry and a properties string
+                            String geometry = "";
+                            String services = "";
+                            String properties = "";
+                            boolean firstProp = true;
+                            String coords[] = new String[2];
+                            String coordinateReference = "";
+                            String urlDownloadFits = "";
+                            String spoly = "";
+                            
+                            for(Concept concept : conceptsColumns.keySet()){
+                                /*if(cpt%100 == 0){
+                                    LOG.log(Level.INFO, "Je suis dans le DANS la boucle WHILE sur les records, et dans la boucle FOR des concepts et cpt = "+cpt);
+                                }*/
+                                concept.getPropertyFromName("category");
+                                String colAlias = conceptsColumns.get(concept);
+                                for(AttributeValue attr : rec.getAttributeValues()){
+                                    if(attr.getName().equals(colAlias) && attr.getValue() != null && !attr.getValue().equals("")){
                                         if(concept.getPropertyFromName("category").getValue().contains("properties")){
                                             if (!firstProp) {
                                                 properties += ",";
@@ -182,71 +219,92 @@ public class DatasetToJson extends SitoolsParameterizedResource {
                                         }
                                         if(concept.getPropertyFromName("category").getValue().contains("services")){
                                             if(concept.getName().equals("download")){
-                                                 urlDownloadFits = attr.getValue().toString();
+                                                urlDownloadFits = attr.getValue().toString();
                                             }
                                         }
-                                        
+
+                                    }
                                 }
-                            }  
-                        }
-                        
-                        // Set the geometry
-                        geometry = setGeometry(coords, coordinateReference, spoly);
-                        // Set The services
-                        if(!urlDownloadFits.isEmpty()){
-                            services = setServices(urlDownloadFits);
-                        }
-                        // start feature
-                        writer.write("{");
-                        writer.write("\"type\":\"feature\",");
-                        // start geometry
-                        writer.write("\"geometry\":{");
-                        writer.write(geometry);
-                        writer.write("}");
-                        // end geometry
-                        writer.write(",");
-                        // start properties
-                        writer.write("\"properties\":{");
-                        writer.write(properties);
-                        // end properties
-                        writer.write("}");
-                        
-                        // start services
-                        if(!services.equals("")){
+                            }
+                            
+                            // Set the geometry
+                            geometry = setGeometry(coords, coordinateReference, spoly);
+                            // Set The services
+                            if(!urlDownloadFits.isEmpty()){
+                                services = setServices(urlDownloadFits);
+                            }
+                            // start feature
+                            //response += "{";
+                            writer.write("{");
+                            //response += "\"type\":\"feature\",";
+                            writer.write("\"type\":\"feature\",");
+                            // start geometry
+                            //response += "\"geometry\":{";
+                            writer.write("\"geometry\":{");
+                            //response += geometry;
+                            writer.write(geometry);
+                            //response += "}";
+                            writer.write("}");
+                            // end geometry
+                            //response += ",";
                             writer.write(",");
-                            writer.write("\"services\":{");
-                        
-                            writer.write(services);
-                             // end services
+                            // start properties
+                            //response += "\"properties\":{";
+                            writer.write("\"properties\":{");
+                            //response += properties;
+                            writer.write(properties);
+                            // end properties
+                            //response += "}";
+                            writer.write("}");
+                            
+                            // start services
+                            if(!services.equals("")){
+                                //response += ",";
+                                writer.write(",");
+                                //response += "\"services\":{";
+                                writer.write("\"services\":{");
+                                //response += services;
+                                writer.write(services);
+                                // end services
+                                //response += "}";
+                                writer.write("}");
+                            }
+                            
+                            // end feature
+                            //response += "}";
                             writer.write("}");
                         }
-                       
-                        // end feature
-                        writer.write("}");
-
-                    }
-                    
-                    // end features
-                    writer.write("]");
-                    
+                        // end features
+                        //response += "]";
+                        writer.write("]");                                                
                         
-
-                }catch (SitoolsException ex) {
-                    Logger.getLogger(DatasetToJson.class.getName()).log(Level.SEVERE, null, ex);
-                }finally {
-                    writer.write("}");
-                    if (databaseRequest != null) {
-                      try {
-                        databaseRequest.close();
-                      }catch (SitoolsException e) {
-                        e.printStackTrace();
-                      }
-                    }
-                    if (writer != null) {
-                    writer.flush();
+                    }catch (SitoolsException ex) {
+                        Logger.getLogger(DatasetToJson.class.getName()).log(Level.SEVERE, null, ex);
+                    }finally {
+                        //response += "}";
+                        writer.write("}");
+                        if (databaseRequest != null) {
+                            try {
+                                databaseRequest.close();
+                            }catch (SitoolsException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        if (writer != null) {
+                            //LOG.log(Level.INFO, "Je suis dans le finally avant le if jsonP");
+                            if(jsonP){
+                                //LOG.log(Level.INFO, "Je suis dans le finally dans le IF du if jsonP");
+                                //String response2 = cb + "("+response +");";
+                                writer.write(");");
+                                writer.flush();
+                            }else{
+                                //LOG.log(Level.INFO, "Je suis dans le finally dans le ELSE du if jsonP");
+                                //writer.write(response);
+                                writer.flush();
+                            }
+                        }
                     }
                 }
-            }
         };
         return repr;
         
@@ -272,38 +330,21 @@ public class DatasetToJson extends SitoolsParameterizedResource {
             geometry = "\"coordinates\": ["+coords[0]+","+coords[1]+"],";
             geometry += "\"referencesystem\": \""+coordRef+"\",\"type\": \"Point\"";
         }else{
-            /*
+            
             String[] tmpString = spoly.split("\\)");
+            //LOG.log(Level.INFO, " SPOLY : "+spoly);
             tmpString[0] = tmpString[0].substring(2, tmpString[0].length());
             spolyStringTmp[0] = tmpString[0];
-            spolyStringTmp[4] = tmpString[0];
+            //LOG.log(Level.INFO, " i : 0 = "+spolyStringTmp[0]);
             for(int i=1;i<4;i++){
                 spolyStringTmp[i] = tmpString[i].substring(2, tmpString[i].length());
-            }
-            int k=0;
-            for(String tmp : spolyStringTmp){
-                double a0 = (Double.parseDouble(tmp.split(",")[0])*ratioSpolyToRaDec);
-                double a1 = (Double.parseDouble(tmp.split(",")[1])*ratioSpolyToRaDec);
-                spolyConverted[k] = "["+String.valueOf(a0)+" , "+String.valueOf(a1)+"]";
-
-                k++;
+                //LOG.log(Level.INFO, "spolyStringTmp  i :"+i+ " = "+spolyStringTmp[i]);
             }
             
-            //geometry = "\"coordinates\":[["+spolyConverted[2]+","+spolyConverted[3]+","+spolyConverted[0]+","+spolyConverted[1]+","+spolyConverted[2]+"]],";
-            geometry = "\"coordinates\":[["+spolyConverted[3]+","+spolyConverted[2]+","+spolyConverted[1]+","+spolyConverted[0]+","+spolyConverted[3]+"]],";
-            geometry += "\"referencesystem\": \""+coordRef+"\",\"type\": \"Polygon\"";
-            */
-            String[] tmpString = spoly.split("\\)");
-            tmpString[0] = tmpString[0].substring(2, tmpString[0].length());
-            spolyStringTmp[0] = tmpString[0];
-            
-            for(int i=1;i<4;i++){
-                spolyStringTmp[i] = tmpString[i].substring(2, tmpString[i].length());
-            }
-            
-            for(int k=0;k<spolyStringTmp.length-1;k++){
+            for(int k=0;k<spolyStringTmp.length;k++){
                 spolyConverted[k] = "["+String.valueOf((Double.parseDouble(spolyStringTmp[k].split(",")[0])*ratioSpolyToRaDec))
                         +" , "+String.valueOf((Double.parseDouble(spolyStringTmp[k].split(",")[1])*ratioSpolyToRaDec))+"]";
+                //LOG.log(Level.INFO, " spolyConverted k :"+k+ " = "+spolyConverted[k]);
             }
             
             geometry = "\"coordinates\":[["+spolyConverted[3]+","+spolyConverted[2]+","+spolyConverted[1]+","+spolyConverted[0]+","+spolyConverted[3]+"]],";
