@@ -79,7 +79,7 @@ public class GetFitsDataSpectro extends SitoolsParameterizedResource {
   public Representation getCsv() {
     return execute();
   }
-
+ 
   @Override
   protected void describeGet(MethodInfo info) {
     this.addInfo(info);
