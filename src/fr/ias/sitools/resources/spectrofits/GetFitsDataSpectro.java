@@ -1,4 +1,4 @@
- /*******************************************************************************
+/*******************************************************************************
  * Copyright 2010-2013 CNES - CENTRE NATIONAL d'ETUDES SPATIALES
  *
  * This file is part of SITools2.
@@ -25,14 +25,13 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-//import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.ext.wadl.MethodInfo;
 import org.restlet.representation.Representation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.Get;
-
+ 
 import fr.cnes.sitools.common.exception.SitoolsException;
 import fr.cnes.sitools.common.resource.SitoolsParameterizedResource;
 import fr.cnes.sitools.dataset.DataSetApplication;
@@ -45,7 +44,14 @@ import fr.cnes.sitools.dataset.database.DatabaseRequest;
 import fr.cnes.sitools.datasource.jdbc.model.AttributeValue;
 import fr.cnes.sitools.datasource.jdbc.model.Record;
 
-import nom.tam.fits.*;
+//Fits librairie
+import nom.tam.fits.Fits;
+import nom.tam.fits.FitsException;
+import nom.tam.fits.FitsFactory;
+import nom.tam.fits.Header;
+import nom.tam.fits.HeaderCard;
+import nom.tam.fits.TableHDU;
+//import nom.tam.fits.*;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -119,25 +125,15 @@ public class GetFitsDataSpectro extends SitoolsParameterizedResource {
     }
     // Get DatabaseRequestParameters
     DatabaseRequestParameters params = dsExplorerUtil.getDatabaseParams();
-
     DatabaseRequest databaseRequest = DatabaseRequestFactory.getDatabaseRequest(params);
-    
-    if (params.getDistinct()) {
-      try {
-        databaseRequest.createDistinctRequest();
-      }
-      catch (SitoolsException e) {
-        
+    try {
+        if (params.getDistinct()) {
+            databaseRequest.createDistinctRequest();
+        } else {
+            databaseRequest.createRequest();
+        }
+    }catch (SitoolsException e) { 
         e.printStackTrace();
-      }
-    } else {
-      try {
-        databaseRequest.createRequest();
-      }
-      catch (SitoolsException e) {
-       
-        e.printStackTrace();
-      }
     }
     
     ResourceParameter urlName = this.getModel().getParameterByName("colUrl");
@@ -261,12 +257,24 @@ public class GetFitsDataSpectro extends SitoolsParameterizedResource {
               
               
               System.out.println("Getting Wave...");
+              int hhdduu = -1;
+              for (int i=0;i<nberHDUs;i++){
+                Header header = fits.getHDU(i).getHeader();
+                String a = header.findKey("CDELT3");
+                if(a != null){
+                    System.out.println("CDELT3 find in "+i);
+                    hhdduu = i;
+                }else{
+                    System.out.println("CDELT3 not found in "+i);
+                }
+              }
+              
               // Wave from fits
-              if (fits.getHDU(hdu).getHeader().findKey("CDELT3")!=null) {
+              //if (fits.getHDU(hdu).getHeader().findKey("CDELT3")!=null) {
+              if(hhdduu != -1){
                 System.out.println("... from WCS");
 
                 double naxis3 = fits.getHDU(hdu).getHeader().getDoubleValue("NAXIS3");
-                System.out.println("CRVAL3 "+fits.getHDU(hdu).getHeader().findKey("CRVAL3"));
                 double crval3 = fits.getHDU(hdu).getHeader().getDoubleValue("CRVAL3");
                 double cdelt3 = fits.getHDU(hdu).getHeader().getDoubleValue("CDELT3");
                 System.out.println(naxis3+" "+crval3+" "+cdelt3);
@@ -274,8 +282,8 @@ public class GetFitsDataSpectro extends SitoolsParameterizedResource {
                 for (int i = 0 ; i < wave.length; i++) { wave[i] = (float) (crval3 + i * cdelt3); }
                 jSON.put("WAVE", wave);
                 
-              }
-              else {
+              }else {
+                System.out.println("not from WCS");
                 if (waveHDU!=-1) {
                   System.out.println("No wave data in the cube WCS - Using wave array from ImageIndex HDU table");
                   TableHDU cols = (TableHDU) fits.getHDU(waveHDU);
@@ -289,14 +297,14 @@ public class GetFitsDataSpectro extends SitoolsParameterizedResource {
                     int waveTable = Integer.parseInt(waveLocation.split("-")[0]);
                     int waveColumn = Integer.parseInt(waveLocation.split("-")[1]);
                     TableHDU cols = (TableHDU) fits.getHDU(waveTable);
+                    
                     double[] waveD = (double[]) cols.getColumn(waveColumn);
                     float[] wave = new float[waveD.length];
                     for (int i = 0 ; i < waveD.length; i++) { wave[i] = (float) waveD[i]; }
                     jSON.put("WAVE", wave);
                   } else {
                     System.out.println("No wave data in "+waveLocation);
-                  }
-                  
+                  }                  
                 } 
               }
               System.out.println(" Wave - Done !");
@@ -340,55 +348,27 @@ public class GetFitsDataSpectro extends SitoolsParameterizedResource {
                 cube3DL.add(list2);  
               }
               
-              /*
-              List<List<List<Float>>> cube3DL = new ArrayList<List<List<Float>>>(naxis1);  
-              for (int i = 0; i < naxis1; i++) {  
-                  List<List<Float>> list2 = new ArrayList<List<Float>>(naxis2);  
-                  for (int j = 0; j < naxis2; j++) {  
-                      List<Float> list3 = new ArrayList<Float>(naxis3);  
-                      for (int k = 0; k < naxis3; k++) { 
-                        list3.add(cube[i][j][k]);
-                        }  
-                      list2.add(list3);  
-                      }  
-                  cube3DL.add(list2);  
-                  } 
-              */
-              
-              JSONArray cubeJL= new JSONArray(cube3DL.toString());
-              jSON.put("SPECTRUM", cubeJL);
-              
-              System.out.println(" Cube - Done !");
-             
-              repr = new JsonRepresentation(jSON);
-              
-              
+                JSONArray cubeJL= new JSONArray(cube3DL.toString());
+                jSON.put("SPECTRUM", cubeJL);
+                System.out.println(" Cube - Done !");
+                repr = new JsonRepresentation(jSON);
             }
             catch (FitsException e) {
-              // TODO Auto-generated catch block
-              e.printStackTrace();
+                e.printStackTrace();
             }
             catch (IOException e) {
-              // TODO Auto-generated catch block
-              e.printStackTrace();
+                e.printStackTrace();
             }
-            
             catch (JSONException e) {
-              // TODO Auto-generated catch block
-              e.printStackTrace();
-            }
-            
+                e.printStackTrace();
+            }  
         }
         databaseRequest.close();
-        
       }
       catch (SitoolsException e) {
-        // TODO Auto-generated catch block
         e.printStackTrace();
-      }
-      
+      }      
     }
-
     return repr;
     
   }

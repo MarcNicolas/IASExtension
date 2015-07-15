@@ -36,21 +36,21 @@ import fr.cnes.sitools.plugins.resources.model.ResourceParameterType;
  * 
  * @author b.hasnoun
  */
-public class GetFitsDataSpectroModel extends ResourceModel {
+public class GetFitsDataSpectroModelGeneric extends ResourceModel {
 
   /**
    * Constructor
    */
-  public GetFitsDataSpectroModel() {
+  public GetFitsDataSpectroModelGeneric() {
 
     super();
     setClassAuthor("Boualem HASNOUN / Marc NICOLAS");
     setClassOwner("IAS");
-    setClassVersion("1.1");
-    setName("GetFitsDataSpectroModel");
+    setClassVersion("0.1");
+    setName("GetFitsDataSpectroModelGeneric");
     setDescription("Getting data and metadata from a fits file");
-    setClassName("fr.ias.sitools.resources.spectrofits.GetFitsDataSpectroModel");
-    setResourceClassName(fr.ias.sitools.resources.spectrofits.GetFitsDataSpectro.class.getName());
+    setClassName("fr.ias.sitools.resources.spectrofits.GetFitsDataSpectroModelGeneric");
+    setResourceClassName(fr.ias.sitools.resources.spectrofits.GetFitsDataSpectroGeneric.class.getName());
     
     ResourceParameter paramColUrl = new ResourceParameter("colUrl", "Colum containing the url of the fits file.",
         ResourceParameterType.PARAMETER_INTERN);
@@ -75,7 +75,7 @@ public class GetFitsDataSpectroModel extends ResourceModel {
     this.setApplicationClassName(DataSetApplication.class.getName());
     this.setDataSetSelection(DataSetSelectionType.SINGLE);
     this.getParameterByName("methods").setValue("GET");
-    this.completeAttachUrlWith("/getFitsDataSpectro");
+    this.completeAttachUrlWith("/getFitsDataSpectroGeneric");
   }
 
   @Override
