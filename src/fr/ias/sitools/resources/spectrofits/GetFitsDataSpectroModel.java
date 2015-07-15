@@ -44,9 +44,9 @@ public class GetFitsDataSpectroModel extends ResourceModel {
   public GetFitsDataSpectroModel() {
 
     super();
-    setClassAuthor("Boualem HASNOUN");
-    setClassOwner("IAS2");
-    setClassVersion("1.0");
+    setClassAuthor("Boualem HASNOUN / Marc NICOLAS");
+    setClassOwner("IAS");
+    setClassVersion("1.1");
     setName("GetFitsDataSpectroModel");
     setDescription("Getting data and metadata from a fits file");
     setClassName("fr.ias.sitools.resources.spectrofits.GetFitsDataSpectroModel");
@@ -65,7 +65,12 @@ public class GetFitsDataSpectroModel extends ResourceModel {
     ResourceParameter paramWaveFromWCS = new ResourceParameter("wave", "HDU Table and column number where to find the wave data if you can't build the wave array from the WCS metadata of the spectral cube. Ex: 4-0",
         ResourceParameterType.PARAMETER_INTERN);
     paramWaveFromWCS.setValueType("xs:string");
-    this.addParam(paramWaveFromWCS);    
+    this.addParam(paramWaveFromWCS); 
+    
+    ResourceParameter typeCube = new ResourceParameter("typeCube", "type of the cube (Hesiod, Mars, ...)",
+        ResourceParameterType.PARAMETER_INTERN);
+    typeCube.setValueType("xs:string");
+    this.addParam(typeCube);
     
     this.setApplicationClassName(DataSetApplication.class.getName());
     this.setDataSetSelection(DataSetSelectionType.SINGLE);
