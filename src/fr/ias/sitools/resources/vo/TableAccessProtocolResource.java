@@ -26,6 +26,7 @@ import fr.ias.sitools.vo.ssa.SimpleSpectralAccessProtocolLibrary;
 import fr.ias.sitools.vo.tap.TableAccessProtocolLibrary;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.restlet.data.Disposition;
 import org.restlet.data.MediaType;
@@ -80,7 +81,7 @@ public class TableAccessProtocolResource extends SitoolsParameterizedResource {
    */
   @Get
   public final Representation getVOResponse() {
-    //LOG.finest(String.format("SSA : %s", getRequest()));
+    getContext().getLogger().log(Level.WARNING, "JE SUIS DANS LA RESOURCE ET DANS LE GETVORESPONSE !!");
     final TableAccessProtocolLibrary tap = new TableAccessProtocolLibrary((DataSetApplication) this.getApplication(),
             this.getModel(), this.getRequest(), this.getContext());
     final Representation rep = tap.getResponse();

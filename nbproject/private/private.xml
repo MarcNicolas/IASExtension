@@ -3,7 +3,12 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/home/marc/NetBeansProjects/IASExtension/src/fr/ias/sitools/resources/spectrofits/GetFitsDataSpectro.java</file>
+            <file>file:/home/marc/NetBeansProjects/IASExtension/src/fr/ias/sitools/vo/ssa/AbstractSqlGeometryConstraint.java</file>
+            <file>file:/home/marc/NetBeansProjects/IASExtension/src/fr/ias/sitools/vo/tap/TableAccessProtocolLibrary.java</file>
+            <file>file:/home/marc/NetBeansProjects/IASExtension/src/fr/ias/sitools/vo/ssa/SimpleSpectralAccessResponse.java</file>
+            <file>file:/home/marc/NetBeansProjects/IASExtension/src/fr/ias/sitools/vo/tap/TableAccessProtocolInputParameters.java</file>
+            <file>file:/home/marc/NetBeansProjects/IASExtension/src/fr/ias/sitools/filters/basic/BooleanCorotAsteroAndExo.java</file>
+            <file>file:/home/marc/NetBeansProjects/IASExtension/src/fr/ias/sitools/vo/tap/TableAccessProtocolResponse.java</file>
         </group>
     </open-files>
 </project-private>

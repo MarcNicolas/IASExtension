@@ -10,6 +10,7 @@ import fr.ias.sitools.vo.representation.VOTableRepresentation;
 import fr.cnes.sitools.dataset.DataSetApplication;
 import fr.cnes.sitools.plugins.resources.model.ResourceModel;
 import java.util.Map;
+import java.util.logging.Level;
 import org.restlet.Context;
 import org.restlet.Request;
 
@@ -22,17 +23,48 @@ public class TableAccessProtocolLibrary {
     public enum langSupported {
         ADQL
     };
-    
+    public enum formatResultsSupported {
+        VOTABLE
+    };
+
+    // Pour la requete
     public static final String FORMAT = "FORMAT";
     public static final String QUERY = "QUERY";
     public static final String LANG = "LANG";
     public static final String PHASE = "PHASE";
     public static final String REQUEST = "REQUEST";
+    // String pour décomposer la requete ADQL
+    public static final String SELECT = "SELECT";
+    public static final String FROM = "FROM";
+    public static final String WHERE = "WHERE";
+    
     private transient DataSetApplication datasetApp;
     private transient ResourceModel resourceModel;
     private transient Request request;
     private transient Context context;
 
+    /**
+     *
+     */
+    public static final String DICTIONARY = "PARAM_Dictionary";
+    //Pour les Metadata
+    /**
+     *
+     */
+    public static final String DESCRIPTION = "Description";
+    /**
+     * 
+     */
+    public static final String INSTRUMENT = "Instrument";
+    /**
+     * 
+     */
+    public static final String SERVICE_NAME = "Service Name";
+    /**
+    *
+    */
+    public static final String MAX_RECORDS = "Max records";
+     
     public TableAccessProtocolLibrary(final DataSetApplication datasetApp, final ResourceModel resourceModel, final Request request, final Context context) {
         this.datasetApp = datasetApp;
         this.resourceModel = resourceModel;
@@ -49,15 +81,35 @@ public class TableAccessProtocolLibrary {
   private Map fillDataModel() {
     // init
     Map dataModel = null;
+    Map<String, Object> map = this.request.getAttributes();
 
-    // Handling input parameters
-    final DataModelInterface inputParameters = new TableAccessProtocolInputParameters(datasetApp, request, this.context, this.resourceModel);
-    // data model response
-    if (inputParameters.getDataModel().containsKey("infos")) {
-      dataModel = inputParameters.getDataModel();
-    } else {
-      final TableAccessProtocolDataModelInterface response = new TableAccessProtocolResponse((TableAccessProtocolInputParameters) inputParameters, resourceModel);
-      dataModel = response.getDataModel();
+    String entityAsText = this.request.getEntityAsText();
+    
+    String query1 = this.request.getResourceRef().getQuery();
+    String queryDecoded = this.request.getResourceRef().getQuery(true);
+    String queryNotDecoded = this.request.getResourceRef().getQuery(false);
+    /*this.context.getLogger().log(Level.SEVERE,"******* query1 "+query1);
+    this.context.getLogger().log(Level.SEVERE,"******* Query Not Decoded "+queryNotDecoded);
+    this.context.getLogger().log(Level.SEVERE,"******* Query Decoded "+queryDecoded);
+    this.context.getLogger().log(Level.SEVERE,"**********************************");*/
+    
+    String tapRequestType = this.request.getAttributes().get("tapRequestType").toString();
+    
+    if(tapRequestType.equalsIgnoreCase("sync")){
+        this.context.getLogger().log(Level.INFO, "JE SUIS DANS LE SYNC !!!");
+        // Handling input parameters
+        final DataModelInterface inputParameters = new TableAccessProtocolInputParameters(datasetApp, request, this.context, this.resourceModel);
+        // data model response
+        if (inputParameters.getDataModel().containsKey("infos")) {
+          dataModel = inputParameters.getDataModel();
+        } else {
+          final TableAccessProtocolDataModelInterface response = new TableAccessProtocolResponse((TableAccessProtocolInputParameters) inputParameters, resourceModel);
+          dataModel = response.getDataModel();
+        }
+    }else if(tapRequestType.equalsIgnoreCase("async")){
+        this.context.getLogger().log(Level.INFO, "JE SUIS DANS LE ASYNC !!!");
+    }else{
+        this.context.getLogger().log(Level.INFO, "JE SUIS DANS NI SYNC NI ASYNC !!!");
     }
     
     return dataModel;
@@ -70,7 +122,7 @@ public class TableAccessProtocolLibrary {
    */
   public final VOTableRepresentation getResponse() {
     final Map dataModel = fillDataModel();
-    return new VOTableRepresentation(dataModel,"votableTAP.ftl");
+    return new VOTableRepresentation(dataModel,"votable.ftl");
   }  
     
 }

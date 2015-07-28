@@ -34,7 +34,7 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 /**
- * Plugin for publishing a dataset through the Simple Image Access Protocol.
+ * Plugin for publishing a dataset through the Table Access Protocol.
  *
  * <p>
  * The plugin answers to the need of the following user story:<br/>
@@ -49,15 +49,16 @@ import java.util.logging.Logger;
  * <br/>
  * </p>
  *
- * @author Jean-Christophe Malapert <jean-christophe.malapert@cnes.fr>
- * @startuml SIAP-usecase.png title Publishing data through SIAP User --> (SIAP
- * service) : requests Admin --> (SIAP service) : adds and configures the SIAP
- * service from the dataset. (SIAP service) .. (dataset) : uses
+ * @author Jean-Christophe Malapert <jean-christophe.malapert@cnes.fr> 
+ * / Marc NICOLAS <marc.nicolas@ias.u-psud.fr>
+ * @startuml TAP-usecase.png title Publishing data through TAP User --> (SIAP
+ * service) : requests Admin --> (TAP service) : adds and configures the SIAP
+ * service from the dataset. (TAP service) .. (dataset) : uses
  * @enduml
- * @startuml package "Services" { HTTP - [SimpleImageAccessResourcePlugin] }
+ * @startuml package "Services" { HTTP - [TableAccessProtocolResourcePlugin] }
  * database "Database" { frame "Data" { [myData] } } package "Dataset" { HTTP -
  * [Dataset] [VODictionary] } folder "DataStorage" { HTTP - [directory] }
- * [SimpleImageAccessResourcePlugin] --> [Dataset] [Dataset] --> [directory]
+ * [TableAccessProtocolResourcePlugin] --> [Dataset] [Dataset] --> [directory]
  * [Dataset] --> [myData] [Dataset] --> [VODictionary]
  * @enduml
  */
@@ -75,7 +76,7 @@ public class TableAccessProtocolResourceModel extends ResourceModel {
         super();
         setClassAuthor("Mnicoals");
         setClassOwner("IAS");
-        setClassVersion("0.1");
+        setClassVersion("0.3");
         setName("Table Access Protocol");
         setDescription("This plugin provides an access to your data through the Table Access Protocol");
         setResourceClassName(fr.ias.sitools.resources.vo.TableAccessProtocolResource.class.getName());
@@ -83,21 +84,44 @@ public class TableAccessProtocolResourceModel extends ResourceModel {
         this.setApplicationClassName(DataSetApplication.class.getName());
         this.setDataSetSelection(DataSetSelectionType.SINGLE);
         this.getParameterByName("methods").setValue("GET");
-        this.completeAttachUrlWith("/services/vo/tap/sync");
-        //setConfiguration();
+        this.completeAttachUrlWith("/services/vo/tap/{tapRequestType}");
+        setConfiguration();
        
     }
 
     /**
      * Sets the configuration for the administrator.
      */
-    /*
+    
     private void setConfiguration() {
-        final ResourceParameter dico = new ResourceParameter(fr.ias.sitools.vo.ssa.SimpleSpectralAccessProtocolLibrary.DICTIONARY, "Dictionary name that sets up the service.",
+        final ResourceParameter dico = new ResourceParameter(fr.ias.sitools.vo.tap.TableAccessProtocolLibrary.DICTIONARY, "Dictionary name that sets up the service.",
         ResourceParameterType.PARAMETER_INTERN);
         dico.setValueType("xs:dictionary");
         this.addParam(dico);
         
+        final ResourceParameter description = new ResourceParameter(fr.ias.sitools.vo.tap.TableAccessProtocolLibrary.DESCRIPTION,
+                "A couple of paragraphs of text that describe the nature of the service and its wider context",
+                ResourceParameterType.PARAMETER_INTERN);
+        addParam(description);
+        
+        final ResourceParameter serviceName = new ResourceParameter(fr.ias.sitools.vo.tap.TableAccessProtocolLibrary.SERVICE_NAME,
+                "The name of the service",
+                ResourceParameterType.PARAMETER_INTERN);
+        serviceName.setValue("Table Access Protocol");
+        addParam(serviceName);
+
+        final ResourceParameter instrument = new ResourceParameter(fr.ias.sitools.vo.tap.TableAccessProtocolLibrary.INSTRUMENT,
+                "The instrument that made the observations, for example STScI.HST.WFPC2",
+                ResourceParameterType.PARAMETER_INTERN);
+        addParam(instrument);
+        
+           final ResourceParameter maxRecords = new ResourceParameter(fr.ias.sitools.vo.tap.TableAccessProtocolLibrary.MAX_RECORDS,
+                "The largest number of records that the service will return", ResourceParameterType.PARAMETER_INTERN);
+        maxRecords.setValue("-1");
+        addParam(maxRecords);
+        
+        
+        /*
         final ResourceParameter intersect = new ResourceParameter(fr.ias.sitools.vo.ssa.SimpleSpectralAccessProtocolLibrary.INTERSECT,
                 "how matched images should intersect the region of interest",
                 ResourceParameterType.PARAMETER_INTERN);
@@ -117,22 +141,7 @@ public class TableAccessProtocolResourceModel extends ResourceModel {
                 "The data provider's name and email", ResourceParameterType.PARAMETER_INTERN);
         addParam(responsibleParty);
 
-        final ResourceParameter serviceName = new ResourceParameter(fr.ias.sitools.vo.ssa.SimpleSpectralAccessProtocolLibrary.SERVICE_NAME,
-                "The name of the service",
-                ResourceParameterType.PARAMETER_INTERN);
-        serviceName.setValueType("xs:enum[Spectral Archive Service, Spectral Cutout Service, Spectral Mosaicing Service, Spectral Extraction Service]");
-        serviceName.setValue("Spectral Archive Service");
-        addParam(serviceName);
-
-        final ResourceParameter description = new ResourceParameter(fr.ias.sitools.vo.ssa.SimpleSpectralAccessProtocolLibrary.DESCRIPTION,
-                "A couple of paragraphs of text that describe the nature of the service and its wider context",
-                ResourceParameterType.PARAMETER_INTERN);
-        addParam(description);
-
-        final ResourceParameter instrument = new ResourceParameter(fr.ias.sitools.vo.ssa.SimpleSpectralAccessProtocolLibrary.INSTRUMENT,
-                "The instrument that made the observations, for example STScI.HST.WFPC2",
-                ResourceParameterType.PARAMETER_INTERN);
-        addParam(instrument);
+        
         
         final ResourceParameter maxQuerySize = new ResourceParameter(
                 fr.ias.sitools.vo.ssa.SimpleSpectralAccessProtocolLibrary.MAX_QUERY_SIZE,
@@ -154,19 +163,15 @@ public class TableAccessProtocolResourceModel extends ResourceModel {
                 ResourceParameterType.PARAMETER_INTERN);
         addParam(maxFileSize);
 
-        final ResourceParameter maxRecords = new ResourceParameter(fr.ias.sitools.vo.ssa.SimpleSpectralAccessProtocolLibrary.MAX_RECORDS,
-                "The largest number of records that the service will return", ResourceParameterType.PARAMETER_INTERN);
-        maxRecords.setValue("-1");
-        addParam(maxRecords);
-        
+     
         final ResourceParameter geoAttribut = new ResourceParameter(fr.ias.sitools.vo.ssa.SimpleSpectralAccessProtocolLibrary.GEO_ATTRIBUT,
                 "Geographical attribut for OVERLAPS mode. The geographical attribut must be spoly datatype from pgsphere",
                 ResourceParameterType.PARAMETER_INTERN);
         geoAttribut.setValueType("xs:dataset.columnAlias");
         addParam(geoAttribut);
-
+        */
     }
-    */
+    
     /**
      * Validates the configuration that has been set by the administrator.
      *
@@ -174,6 +179,7 @@ public class TableAccessProtocolResourceModel extends ResourceModel {
      */
     @Override
     public final Validator<ResourceModel> getValidator() {
+        
         return new Validator<ResourceModel>() {
             @Override
             public final Set<ConstraintViolation> validate(final ResourceModel item) {
@@ -190,6 +196,6 @@ public class TableAccessProtocolResourceModel extends ResourceModel {
                 }
                 return constraintList;
             }
-        };
+        };              
     }
 }

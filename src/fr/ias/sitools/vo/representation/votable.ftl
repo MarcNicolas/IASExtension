@@ -17,9 +17,29 @@
             <INFO<#if info.id?exists> ID="${info.id}"</#if> name="${info.name}" value="${info.valueAttribute}"<#if info.xtype?exists> xtype="${info.xtype}"</#if><#if info.ref?exists> ref="${info.ref}"</#if><#if info.unit?exists> unit="${info.unit}"</#if><#if info.ucd?exists> ucd="${info.ucd}"</#if><#if info.utype?exists> utype="${info.utype}"</#if> />
         </#list>
     </#if>
-    
-    <#if fields?exists>
-    <TABLE<#if nrows?exists> nrows="${nrows}"</#if>>
+    <#if params?exists>
+        <#list params as param>
+            <#if param.DESCRIPTION?exists>
+                <PARAM<#if param.id?exists> ID="${param.id}"</#if> name="${param.name}" <#if param.unit?exists> unit="${param.unit}"</#if> datatype="${param.datatype.value()}"<#if param.precision?exists> precision="${param.precision}"</#if><#if param.width?exists> ID="${param.width}"</#if><#if param.xtype?exists> xtype="${param.xtype}"</#if><#if param.ref?exists> ref="${param.ref}"</#if><#if param.ucd?exists> ucd="${param.ucd}"</#if><#if param.utype?exists> utype="${param.utype}"</#if><#if param.arraysize?exists> arraysize="${param.arraysize}"</#if> value="${param.value}">
+                    <DESCRIPTION>
+                    <#list param.DESCRIPTION.content as description>
+                        ${description}
+                    </#list>
+                    </DESCRIPTION>
+                <#if param.VALUES?exists>
+                    <VALUES<#if param.VALUES.id?exists> ID="${param.VALUES.id}"</#if><#if param.VALUES.type?exists> type="${param.VALUES.type}"</#if><#if param.VALUES.null?exists> null="${param.VALUES.null}"</#if><#if param.VALUES.ref?exists> ref="${param.VALUES.ref}"</#if>>
+                    <#if param.VALUES.OPTION?exists>
+                    <#list param.VALUES.OPTION as option>
+                        <OPTION<#if option.name?exists> name="${option.name}"</#if> value="${option.value}"/>
+                    </#list>
+                    </#if>
+                    </VALUES>
+                </#if>
+                </PARAM>
+            <#else>
+                <PARAM<#if param.id?exists> ID="${param.id}"</#if> name="${param.name}" <#if param.unit?exists> unit="${param.unit}"</#if> datatype="${param.datatype.value()}"<#if param.precision?exists> precision="${param.precision}"</#if><#if param.width?exists> ID="${param.width}"</#if><#if param.xtype?exists> xtype="${param.xtype}"</#if><#if param.ref?exists> ref="${param.ref}"</#if><#if param.ucd?exists> ucd="${param.ucd}"</#if><#if param.utype?exists> utype="${param.utype}"</#if><#if param.arraysize?exists> arraysize="${param.arraysize}"</#if> value="${param.value}"/>
+            </#if>
+        </#list>
     </#if>
     <#if fields?exists>
         <#list fields as field> 
@@ -38,21 +58,21 @@
     </#if>
     <#if rows?exists>
     <#if nrows != 0>
+    <TABLE<#if nrows?exists> nrows="${nrows}"</#if>>
     <DATA>
         <TABLEDATA>
         <#list rows as row>
         <TR>
             <#list sqlColAlias as sqlcol>
-            <#if row["${sqlcol}"] == "null"><TD/><#else>${row["${sqlcol}"]}</TD></#if>
+            <#if row["${sqlcol}"] == "null"><TD> <#if sqlcol?exists> header : ${sqlcol}</#if></TD><#else><TD>${row["${sqlcol}"]}</TD></#if>
             </#list>
         </TR>
         </#list>
         </TABLEDATA>
     </DATA>
-    </#if>
-    </#if>
-    <#if fields?exists>
     </TABLE>
     </#if>
+    </#if>
+    
     </RESOURCE>
 </VOTABLE>
