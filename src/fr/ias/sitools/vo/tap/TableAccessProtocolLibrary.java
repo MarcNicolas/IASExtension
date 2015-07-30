@@ -37,6 +37,8 @@ public class TableAccessProtocolLibrary {
     public static final String SELECT = "SELECT";
     public static final String FROM = "FROM";
     public static final String WHERE = "WHERE";
+    public static final String SELECT_ALL = "*";
+    public static final String BLANCK = " ";
     
     private transient DataSetApplication datasetApp;
     private transient ResourceModel resourceModel;
@@ -82,17 +84,12 @@ public class TableAccessProtocolLibrary {
     // init
     Map dataModel = null;
     Map<String, Object> map = this.request.getAttributes();
-
-    String entityAsText = this.request.getEntityAsText();
-    
+/*
+    String entityAsText = this.request.getEntityAsText(); 
     String query1 = this.request.getResourceRef().getQuery();
     String queryDecoded = this.request.getResourceRef().getQuery(true);
     String queryNotDecoded = this.request.getResourceRef().getQuery(false);
-    /*this.context.getLogger().log(Level.SEVERE,"******* query1 "+query1);
-    this.context.getLogger().log(Level.SEVERE,"******* Query Not Decoded "+queryNotDecoded);
-    this.context.getLogger().log(Level.SEVERE,"******* Query Decoded "+queryDecoded);
-    this.context.getLogger().log(Level.SEVERE,"**********************************");*/
-    
+*/  
     String tapRequestType = this.request.getAttributes().get("tapRequestType").toString();
     
     if(tapRequestType.equalsIgnoreCase("sync")){

@@ -12,7 +12,7 @@ import adql.query.ADQLQuery;
 import adql.translator.ADQLTranslator;
 import adql.translator.PostgreSQLTranslator;
 import adql.translator.TranslationException;
-import fr.cnes.sitools.astro.representation.DatabaseRequestModel;
+//import fr.cnes.sitools.astro.representation.DatabaseRequestModel;
 import fr.cnes.sitools.common.exception.SitoolsException;
 import fr.cnes.sitools.dataset.DataSetApplication;
 import fr.cnes.sitools.dataset.converter.business.ConverterChained;
@@ -24,10 +24,13 @@ import fr.cnes.sitools.dataset.dto.ColumnConceptMappingDTO;
 import fr.cnes.sitools.dataset.dto.DictionaryMappingDTO;
 import fr.cnes.sitools.dataset.model.Column;
 import fr.cnes.sitools.dataset.model.Predicat;
+import fr.cnes.sitools.dictionary.model.Concept;
 import fr.cnes.sitools.plugins.resources.model.ResourceModel;
 import fr.cnes.sitools.util.Util;
+import fr.ias.sitools.vo.representation.DatabaseRequestIasModel;
 import freemarker.template.TemplateModelException;
 import freemarker.template.TemplateSequenceModel;
+import java.math.BigInteger;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.ivoa.xml.votable.v1.AnyTEXT;
 import net.ivoa.xml.votable.v1.DataType;
 import net.ivoa.xml.votable.v1.Field;
 import net.ivoa.xml.votable.v1.Info;
@@ -74,52 +78,21 @@ class TableAccessProtocolResponse implements TableAccessProtocolDataModelInterfa
     
     private String clauseWhereToQuery;
     
+    private String clauseLimit;
+    private int clauseLimitInt;
+    private String format;
+    
     public TableAccessProtocolResponse(final TableAccessProtocolInputParameters inputParameters, final ResourceModel model) {        
-        final String format = inputParameters.getFormat();
+        this.format = inputParameters.getFormat();
         this.adqlQuery = inputParameters.getQuery();
         this.ctx = inputParameters.getContext();
 
         if(this.adqlQuery == null || this.adqlQuery .equalsIgnoreCase("")){
             // TO DO
         }else{
-            try {
-                
-                // On crée un parser pour transformer notre string query en adql query
-                ADQLParser parser = new ADQLParser();
-                ADQLQuery adqlQueryValue = parser.parseQuery(this.adqlQuery );;
-                // On traduit l'adql query en psql query
-                ADQLTranslator translator = new PostgreSQLTranslator();
-                this.psqlQuery = translator.translate(adqlQueryValue);
-                this.clauseWhereToQuery = "AND"+ this.psqlQuery.split(TableAccessProtocolLibrary.FROM)[1].split(TableAccessProtocolLibrary.WHERE)[1];  
-                
-                String[] colsToQueryTmp = this.psqlQuery.split(TableAccessProtocolLibrary.FROM)[0].split(TableAccessProtocolLibrary.SELECT)[1].split(",");
-                for(String col : colsToQueryTmp){
-                    if(col.equalsIgnoreCase("*")){
-                        colsToQuery.add(col.replaceAll(" ", ""));
-                        break;
-                    }else{
-                        colsToQuery.add(col.split("AS")[0].replaceAll(" ", ""));
-                    }
-                }
-                for (String col :colsToQuery){
-                    this.ctx.getLogger().log(Level.SEVERE,"IN COL TO QUERY : col = "+col);
-                }
-                
-                if(format == null || format.equalsIgnoreCase("")){
-                    // TO DO
-                }else{
-                    ctx.getLogger().log(Level.INFO, "format = "+format);
-                }
-                
-                createResponse(inputParameters, model);
-                
-            } catch (ParseException ex) {
-                Logger.getLogger(TableAccessProtocolResponse.class.getName()).log(Level.SEVERE, "Can't parse the ADQL query, error : {0}.", ex);
-            } catch (TranslationException ex) {
-                Logger.getLogger(TableAccessProtocolResponse.class.getName()).log(Level.SEVERE, "Can't translate into psql the adql query, error {0}.", ex);
-            }  
+            processQuery();
+            createResponse(inputParameters, model); 
         }
-        
     }
 
     private void createResponse(final TableAccessProtocolInputParameters inputParameters, final ResourceModel model){
@@ -144,7 +117,7 @@ class TableAccessProtocolResponse implements TableAccessProtocolDataModelInterfa
     * @param datasetApp Dataset application
     * @param inputParameters Input Parameters
     * @param model data model
-    * @param dictionaryName Cone search dictionary
+    * @param dictionaryName TAP dictionary
     */
     private void setVotableResource(final DataSetApplication datasetApp, final TableAccessProtocolInputParameters inputParameters,
           final ResourceModel model, final String dictionaryName) {
@@ -159,29 +132,38 @@ class TableAccessProtocolResponse implements TableAccessProtocolDataModelInterfa
 
             // On récupere le mapping
             List<ColumnConceptMappingDTO> mappingList = getDicoFromConfiguration(datasetApp, dictionaryName);
-
+            
             final DatabaseRequestParameters dbParams = setQueryParameters(datasetApp, model, inputParameters, mappingList);
 
+            // On récupère les colonnes à requeter
             List<Column> listCol = getColumnToQuery(columnList);
+            // On envoie les colonnes à requeter
             dbParams.setSqlVisibleColumns(listCol);
+            
+            // S'il y a un parametre Limit on le rajoute au parametre de requete
+            if(this.clauseLimitInt > 0)
+            {
+                dbParams.setMaxrows(this.clauseLimitInt);
+            }   
             databaseRequest = DatabaseRequestFactory.getDatabaseRequest(dbParams);
+            databaseRequest.checkRequest();
             // Execute query
             databaseRequest.createRequest();
 
             getCtx().getLogger().log(Level.FINEST, "-------- DB REQUEST : {0}", databaseRequest.getRequestAsString());
 
-            //setFields(fieldList, columnStringList, mappingList);
+            setFields(fieldList, columnStringList, mappingList, listCol);
             
             final int count = (databaseRequest.getCount() > dbParams.getPaginationExtend()) ? dbParams.getPaginationExtend() : databaseRequest.getCount();
             dataModel.put("nrows", count);
-            for(Column a : listCol){
-                columnStringList.add(a.getColumnAlias());
-            }
+            dataModel.put("fields", fieldList);
             dataModel.put("sqlColAlias", columnStringList);
             
             final ConverterChained converterChained = datasetApp.getConverterChained();
             
-            final TemplateSequenceModel rows = new DatabaseRequestModel(databaseRequest, converterChained);
+            //final TemplateSequenceModel rows = new DatabaseRequestModel(databaseRequest, converterChained);
+            final TemplateSequenceModel rows = new DatabaseRequestIasModel(databaseRequest, converterChained);
+
             dataModel.put("rows", rows);
         } catch (SitoolsException ex) {
             Logger.getLogger(TableAccessProtocolResponse.class.getName()).log(Level.SEVERE, null, ex);
@@ -206,25 +188,29 @@ class TableAccessProtocolResponse implements TableAccessProtocolDataModelInterfa
 
     // Get query parameters
     final DatabaseRequestParameters dbParams = dsExplorerUtil.getDatabaseParams();
-
     // Get dataset records
     final int nbRecordsInDataSet = datasetApp.getDataSet().getNbRecords();
 
     // Get max records that is defined by admin
     int nbMaxRecords = Integer.valueOf(model.getParameterByName(TableAccessProtocolLibrary.MAX_RECORDS).getValue());
     nbMaxRecords = (nbMaxRecords > nbRecordsInDataSet || nbMaxRecords == -1) ? nbRecordsInDataSet : nbMaxRecords;
-
+    // if a limit clause is defined, used it.
+    if(this.clauseLimit != null){        
+        nbMaxRecords = Integer.parseInt(this.clauseLimit);
+    }
     // Set max records
     dbParams.setPaginationExtend(nbMaxRecords);
+    
+    
     
     final List<Predicat> predicatList = dbParams.getPredicats();
     //String customQuery = "AND ra > 25 and dec < 180 and flux > 0.256";
     Predicat predicat = new Predicat();
+    
     predicat.setStringDefinition(this.clauseWhereToQuery);
     predicatList.add(predicat);
     dbParams.setPredicats(predicatList);
     
-   
     return dbParams;
   }
 
@@ -328,6 +314,151 @@ class TableAccessProtocolResponse implements TableAccessProtocolDataModelInterfa
         return colsToQueryList;
     }
     
+    /**
+   * Set Fields and columnSqlAliasList.
+   *
+   * @param fieldList List of fields to display on the VOTable
+   * @param colToQuery List of column to query and so to display in VOTable
+   * @param columnList List of SQL column
+   * @param mappingList List of SQL column/concept
+   */
+  private void setFields(final List<Field> fieldList, final List<String> columnList, final List<ColumnConceptMappingDTO> mappingList, final List<Column> colToQuery) {
+
+    for(Column col : colToQuery){
+        
+        for (ColumnConceptMappingDTO mappingIter : mappingList) {
+            if(col.getColumnAlias().equalsIgnoreCase(mappingIter.getColumnAlias())){
+                
+                String id = null;
+                String name = null;
+                String ucd = null;
+                String utype = null;
+                String ref = null;
+                String datatype = null;
+                String width = null;
+                String precision = null;
+                String unit = null;
+                String type = null;
+                String xtype = null;
+                String arraysize = null;
+                String descriptionValue = null;
+                columnList.add(mappingIter.getColumnAlias());
+                final Concept concept = mappingIter.getConcept();
+                if (concept.getName() != null) {
+                  name = concept.getName();
+                }
+                if (concept.getPropertyFromName("ID").getValue() != null) {
+                  id = concept.getPropertyFromName("ID").getValue();
+                }
+                if (concept.getPropertyFromName("ucd").getValue() != null) {
+                  ucd = concept.getPropertyFromName("ucd").getValue();
+                }
+                if (concept.getPropertyFromName("utype").getValue() != null) {
+                  utype = concept.getPropertyFromName("utype").getValue();
+                }
+                if (concept.getPropertyFromName("ref").getValue() != null) {
+                  ref = concept.getPropertyFromName("ref").getValue();
+                }
+                if (concept.getPropertyFromName("datatype").getValue() != null) {
+                  datatype = concept.getPropertyFromName("datatype").getValue();
+                }
+                if (concept.getPropertyFromName("width").getValue() != null) {
+                  width = concept.getPropertyFromName("width").getValue();
+                }
+                if (concept.getPropertyFromName("precision").getValue() != null) {
+                  precision = concept.getPropertyFromName("precision").getValue();
+                }
+                if (concept.getPropertyFromName("unit").getValue() != null) {
+                  unit = concept.getPropertyFromName("unit").getValue();
+                }
+                if (concept.getPropertyFromName("type").getValue() != null) {
+                  type = concept.getPropertyFromName("type").getValue();
+                }
+                if (concept.getPropertyFromName("xtype").getValue() != null) {
+                  xtype = concept.getPropertyFromName("xtype").getValue();
+                }
+                if (concept.getPropertyFromName("arraysize").getValue() != null) {
+                  arraysize = concept.getPropertyFromName("arraysize").getValue();
+                }
+                if (concept.getDescription() != null) {
+                  descriptionValue = concept.getDescription();
+                }
+                final Field field = new Field();
+                field.setID(id);
+                field.setName(name);
+                field.setUcd(ucd);
+                field.setUtype(utype);
+                field.setRef(ref);
+                field.setDatatype(DataType.fromValue(datatype));
+                if (width != null) {
+                  field.setWidth(BigInteger.valueOf(Long.valueOf(width)));
+                }
+                field.setPrecision(precision);
+                field.setUnit(unit);
+                field.setType(type);
+                field.setXtype(xtype);
+                field.setArraysize(arraysize);
+                final AnyTEXT anyText = new AnyTEXT();
+                anyText.getContent().add(descriptionValue);
+                field.setDESCRIPTION(anyText);
+                fieldList.add(field);
+            }
+        }
+    }
+  }
+  
+  private String checkColTQueryPrimKey(List<Column> colToQuery){
+      String primaryKeyColString = null;
+      for(Column col : colToQuery){
+          if(col.isPrimaryKey()){
+              primaryKeyColString = col.getColumnAlias();
+          }
+      }
+      return primaryKeyColString;
+  }
+    
+    private void processQuery(){
+        try {
+            // On crée un parser pour transformer notre string query en adql query
+            ADQLParser parser = new ADQLParser();
+            ADQLQuery adqlQueryValue = parser.parseQuery(this.adqlQuery);
+            // On traduit l'adql query en psql query
+            ADQLTranslator translator = new PostgreSQLTranslator();
+
+            this.psqlQuery = translator.translate(adqlQueryValue);
+
+
+            if(this.psqlQuery.contains("Limit ")){
+                this.clauseLimit = this.psqlQuery.split("Limit ")[1];
+                this.clauseLimitInt = Integer.parseInt(this.clauseLimit.replaceAll(" ", ""));
+                this.psqlQuery = this.psqlQuery.split("Limit ")[0];
+            }else{
+                this.clauseLimit = null;
+                this.clauseLimitInt = -1;
+            }
+
+            this.clauseWhereToQuery = "AND"+ this.psqlQuery.split(TableAccessProtocolLibrary.FROM)[1].split(TableAccessProtocolLibrary.WHERE)[1];  
+
+            String[] colsToQueryTmp = this.psqlQuery.split(TableAccessProtocolLibrary.FROM)[0].split(TableAccessProtocolLibrary.SELECT)[1].split(",");
+            for(String col : colsToQueryTmp){
+                if(col.equalsIgnoreCase(TableAccessProtocolLibrary.SELECT_ALL)){
+                    colsToQuery.add(col.replaceAll(TableAccessProtocolLibrary.BLANCK, ""));
+                    break;
+                }else{
+                    colsToQuery.add(col.split("AS")[0].replaceAll(TableAccessProtocolLibrary.BLANCK, ""));
+                }
+            }
+            if(format == null || format.equalsIgnoreCase("")){
+                // TO DO
+            }else{
+                ctx.getLogger().log(Level.INFO, "format = "+format);
+            }
+        } catch (TranslationException ex) {
+            Logger.getLogger(TableAccessProtocolResponse.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (ParseException ex) {
+            Logger.getLogger(TableAccessProtocolResponse.class.getName()).log(Level.SEVERE, null, ex);
+        }
+  }
     @Override
     public final Map getDataModel() {
         return Collections.unmodifiableMap(this.dataModel);
