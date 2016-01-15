@@ -28,7 +28,6 @@ import fr.cnes.sitools.dictionary.model.Concept;
 import fr.cnes.sitools.plugins.resources.model.ResourceModel;
 import fr.cnes.sitools.util.Util;
 import fr.ias.sitools.vo.representation.DatabaseRequestIasModel;
-import freemarker.template.TemplateModelException;
 import freemarker.template.TemplateSequenceModel;
 import java.math.BigInteger;
 
@@ -81,6 +80,8 @@ class TableAccessProtocolResponse implements TableAccessProtocolDataModelInterfa
     private String clauseLimit;
     private int clauseLimitInt;
     private String format;
+    
+    boolean isPrimaryKey;
     
     public TableAccessProtocolResponse(final TableAccessProtocolInputParameters inputParameters, final ResourceModel model) {        
         this.format = inputParameters.getFormat();
@@ -137,6 +138,7 @@ class TableAccessProtocolResponse implements TableAccessProtocolDataModelInterfa
 
             // On récupère les colonnes à requeter
             List<Column> listCol = getColumnToQuery(columnList);
+            listCol = checkPrimaryKeyAndAddItColTQuery(columnList, listCol);
             // On envoie les colonnes à requeter
             dbParams.setSqlVisibleColumns(listCol);
             
@@ -297,7 +299,8 @@ class TableAccessProtocolResponse implements TableAccessProtocolDataModelInterfa
     
     private List<Column> getColumnToQuery(List<Column> columnList){
         List<Column> colsToQueryList = new ArrayList<Column>();
-        if(this.colsToQuery.size() == 1 && this.colsToQuery.get(0).contains("*")){
+        String all = this.adqlQuery.split(TableAccessProtocolLibrary.SELECT)[1].split(TableAccessProtocolLibrary.FROM)[0];      
+        if(this.colsToQuery.size() == 1 && all.contains("*")){
             for(Column colCol : columnList){ 
                 colsToQueryList.add(colCol);
             }
@@ -323,8 +326,12 @@ class TableAccessProtocolResponse implements TableAccessProtocolDataModelInterfa
    * @param mappingList List of SQL column/concept
    */
   private void setFields(final List<Field> fieldList, final List<String> columnList, final List<ColumnConceptMappingDTO> mappingList, final List<Column> colToQuery) {
-
-    for(Column col : colToQuery){
+    
+    List<Column> colToQuery2 = colToQuery;
+    if(!isPrimaryKey){
+        colToQuery2.remove(colToQuery2.size()-1);
+    }
+    for(Column col : colToQuery2){
         
         for (ColumnConceptMappingDTO mappingIter : mappingList) {
             if(col.getColumnAlias().equalsIgnoreCase(mappingIter.getColumnAlias())){
@@ -406,15 +413,24 @@ class TableAccessProtocolResponse implements TableAccessProtocolDataModelInterfa
         }
     }
   }
-  
-  private String checkColTQueryPrimKey(List<Column> colToQuery){
-      String primaryKeyColString = null;
-      for(Column col : colToQuery){
-          if(col.isPrimaryKey()){
-              primaryKeyColString = col.getColumnAlias();
+  //List<Column> columnList = datasetApp.getDataSet().getColumnModel();
+  private List<Column> checkPrimaryKeyAndAddItColTQuery(List<Column> columnList, List<Column> colToQuery){
+      Column colPrimKey = null;
+      for(Column co : columnList){
+          if(co.isPrimaryKey()){
+              colPrimKey = co;
           }
       }
-      return primaryKeyColString;
+      for(Column col : colToQuery){
+          if(col.isPrimaryKey()){
+              isPrimaryKey = true; 
+          }
+      }
+      if(!isPrimaryKey &&  "" != colPrimKey.getColumnAlias()){
+          colToQuery.add(colPrimKey);
+      }
+      
+      return colToQuery;
   }
     
     private void processQuery(){
@@ -426,7 +442,8 @@ class TableAccessProtocolResponse implements TableAccessProtocolDataModelInterfa
             ADQLTranslator translator = new PostgreSQLTranslator();
 
             this.psqlQuery = translator.translate(adqlQueryValue);
-
+            ctx.getLogger().log(Level.SEVERE, "#### ADQL request : "+this.adqlQuery);
+            ctx.getLogger().log(Level.SEVERE, "#### PSQL request : "+this.psqlQuery);
 
             if(this.psqlQuery.contains("Limit ")){
                 this.clauseLimit = this.psqlQuery.split("Limit ")[1];
